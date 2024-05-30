@@ -3,6 +3,6 @@
     {vsn, "git"},
     {modules, []},
     {registered, [iotdb_sup]},
-    {applications, [kernel, stdlib]},
+    {applications, [kernel, stdlib, thrift]},
     {mod, {iotdb_app, []}}
 ]}.
