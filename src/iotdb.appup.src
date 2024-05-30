@@ -1,0 +1,5 @@
+{VSN,
+  [{<<".*">>,
+    [{load_module,iotdb,brutal_purge,soft_purge,[]}]}],
+  [{<<".*">>,
+    [{load_module,iotdb,brutal_purge,soft_purge,[]}]}]}.

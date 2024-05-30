@@ -1,0 +1,8 @@
+{application, iotdb, [
+    {description, "IoTDB Client"},
+    {vsn, "git"},
+    {modules, []},
+    {registered, [iotdb_sup]},
+    {applications, [kernel, stdlib]},
+    {mod, {iotdb_app, []}}
+]}.
