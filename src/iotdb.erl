@@ -5,7 +5,7 @@
 -include("include/iotdb_client_types.hrl").
 
 %% API.
--export([start_link/0, start_link/1, stop/1]).
+-export([start_link/1, stop/1]).
 
 -export([insert/2, ping/1]).
 
@@ -43,11 +43,6 @@
 -type bitmap() :: #bitmap{}.
 
 -define(SERVICE, iotdb_IClientRPCService_thrift).
-
-%% API.
--spec start_link() -> {ok, pid()}.
-start_link() ->
-    start_link([]).
 
 start_link(Opts) ->
     gen_server:start_link(?MODULE, [Opts], []).
