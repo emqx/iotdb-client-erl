@@ -7,7 +7,7 @@
 %% API.
 -export([start_link/0, start_link/1, stop/1]).
 
--export([insert/2]).
+-export([insert/2, ping/1]).
 
 %% gen_server.
 -export([
@@ -58,9 +58,13 @@ stop(Pid) ->
 insert(Pid, Req) ->
     gen_server:call(Pid, {?FUNCTION_NAME, Req}).
 
+ping(Pid) ->
+    gen_server:call(Pid, ?FUNCTION_NAME).
+
 %% gen_server.
 init([
     #{
+        version := Version,
         host := Host,
         port := Port,
         zoneId := ZoneId,
@@ -74,7 +78,10 @@ init([
         {ok, Client} ->
             Password = maps:get(password, Cfg, undefined),
             OpenReq = #tSOpenSessionReq{
-                zoneId = ZoneId, username = Username, password = Password
+                client_protocol = Version,
+                zoneId = ZoneId,
+                username = Username,
+                password = Password
             },
             case call_thrift(Client, openSession, [OpenReq]) of
                 {ok, Client1, Result} ->
@@ -95,6 +102,17 @@ init([
 handle_call({insert, Req}, _From, State) ->
     {State2, Result} = do_insert(State, Req),
     {reply, Result, State2};
+handle_call(ping, _From, #{client := Client, sessionId := SessionId} = State) ->
+    Req = #tSInsertRecordReq{
+        sessionId = SessionId,
+        prefixPath = <<>>,
+        measurements = [],
+        values = <<>>,
+        timestamp = erlang:system_time(millisecond),
+        isAligned = false
+    },
+    {Succ, Client1, Result} = call_thrift(Client, testInsertRecord, [Req]),
+    {reply, {Succ, Result}, State#{client := Client1}};
 handle_call(_Request, _From, State) ->
     {reply, ignored, State}.
 
@@ -104,6 +122,10 @@ handle_cast(_Msg, State) ->
 handle_info(_Info, State) ->
     {noreply, State}.
 
+terminate(_Reason, #{client := Client, sessionId := SessionId}) ->
+    Req = #tSCloseSessionReq{sessionId = SessionId},
+    _ = call_thrift(Client, closeSession, [Req]),
+    ok;
 terminate(_Reason, _State) ->
     ok.
 
