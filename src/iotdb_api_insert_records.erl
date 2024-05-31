@@ -6,8 +6,6 @@
 %% API.
 -export([make/2]).
 
--define(NULL_TYPE_NUM, -1).
-
 make(
     SessionId,
     #{
@@ -19,43 +17,73 @@ make(
         timestamps := Timestamps
     }
 ) ->
-    #tSInsertRecordsReq{
-        sessionId = SessionId,
-        prefixPaths = Devices,
-        measurementsList = MeasurementsList,
-        valuesList = values_list_to_binary(DataTypeList, ValuesList, []),
-        timestamps = timestamps_to_binary(Timestamps),
-        isAligned = IsAligned
-    }.
+    case
+        filter_and_encode_values_list(
+            MeasurementsList, DataTypeList, ValuesList, Timestamps, [], [], []
+        )
+    of
+        {ok, MeasurementsList2, ValuesList2, Timestamps2} ->
+            {ok, #tSInsertRecordsReq{
+                sessionId = SessionId,
+                prefixPaths = Devices,
+                measurementsList = MeasurementsList2,
+                valuesList = ValuesList2,
+                timestamps = Timestamps2,
+                isAligned = IsAligned
+            }};
+        Error ->
+            Error
+    end.
 
-timestamps_to_binary(Timestamps) ->
-    lists:foldr(
-        fun(Timestamp, Acc) ->
-            <<Acc/binary, Timestamp:64/big>>
-        end,
-        <<>>,
-        Timestamps
-    ).
+filter_and_encode_values_list(
+    [Measurements | MeasurementsList],
+    [Types | TypesList],
+    [Values | ValuesList],
+    [Timestamp | Timestamps],
+    MAcc,
+    VAcc,
+    TAcc
+) ->
+    case filter_and_encode_values(Measurements, Types, Values, [], <<>>) of
+        true ->
+            filter_and_encode_values_list(
+                MeasurementsList, TypesList, ValuesList, Timestamps, MAcc, VAcc, TAcc
+            );
+        {false, Measurements2, ValuesBin} ->
+            filter_and_encode_values_list(
+                MeasurementsList,
+                TypesList,
+                ValuesList,
+                Timestamps,
+                [Measurements2 | MAcc],
+                [ValuesBin | VAcc],
+                [Timestamp | TAcc]
+            );
+        Error ->
+            Error
+    end;
+filter_and_encode_values_list([], [], [], [], MeasurementsList, ValuesList, Timestamps) ->
+    {ok, lists:reverse(MeasurementsList), lists:reverse(ValuesList), lists:reverse(Timestamps)};
+filter_and_encode_values_list(_, _, _, _, _, _, _) ->
+    {error, invalid_data}.
 
-values_list_to_binary([Types | TypesList], [Values | ValuesList], Acc) ->
-    Bin = values_to_binary(Types, Values, <<>>),
-    values_list_to_binary(TypesList, ValuesList, [Bin | Acc]);
-values_list_to_binary([], [], Acc) ->
-    lists:reverse(Acc).
-
-values_to_binary([Type | Types], [Value | Values], Acc) ->
-    TypeNum =
-        case Value of
-            null ->
-                ?NULL_TYPE_NUM;
-            _ ->
-                iotdb_utils:get_data_type_number(Type)
-        end,
-    Acc2 = <<Acc/binary, TypeNum:8>>,
-    Acc3 = append_value_into_binary(TypeNum, Value, Acc2),
-    values_to_binary(Types, Values, Acc3);
-values_to_binary([], [], Acc) ->
-    Acc.
+filter_and_encode_values(
+    [_Measurement | Measurements], [_Type | Types], [null | Values], MAcc, VAcc
+) ->
+    filter_and_encode_values(Measurements, Types, Values, MAcc, VAcc);
+filter_and_encode_values(
+    [Measurement | Measurements], [Type | Types], [Value | Values], MAcc, VAcc
+) ->
+    TypeNum = iotdb_utils:get_data_type_number(Type),
+    VAcc2 = <<VAcc/binary, TypeNum:8>>,
+    VAcc3 = append_value_into_binary(TypeNum, Value, VAcc2),
+    filter_and_encode_values(Measurements, Types, Values, [Measurement | MAcc], VAcc3);
+filter_and_encode_values([], [], [], [], _ValueBin) ->
+    true;
+filter_and_encode_values([], [], [], Measurements, ValuesBin) ->
+    {false, lists:reverse(Measurements), ValuesBin};
+filter_and_encode_values(_, _, _, _, _) ->
+    {error, invalid_data}.
 
 append_value_into_binary(?DATATYPE_BOOLEAN, Value, Acc) ->
     IntVal =
@@ -76,6 +104,4 @@ append_value_into_binary(?DATATYPE_DOUBLE, Value, Acc) ->
     <<Acc/binary, Value:64/float>>;
 append_value_into_binary(?DATATYPE_TEXT, Value, Acc) ->
     Len = erlang:byte_size(Value),
-    <<Acc/binary, Len:32, Value/binary>>;
-append_value_into_binary(?NULL_TYPE_NUM, _, Acc) ->
-    Acc.
+    <<Acc/binary, Len:32, Value/binary>>.

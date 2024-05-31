@@ -27,6 +27,10 @@
 
 -define(SERVICE, iotdb_IClientRPCService_thrift).
 
+%% the first time to create a new schema in IotDB may take a lot of time
+-define(CALL_TIMEOUT, timer:seconds(15)).
+-define(SVR_CALL(Pid, Msg), gen_server:call(Pid, Msg, ?CALL_TIMEOUT)).
+
 start_link(Opts) ->
     gen_server:start_link(?MODULE, [Opts], []).
 
@@ -34,13 +38,13 @@ stop(Pid) ->
     gen_server:stop(Pid).
 
 insert_tablet(Pid, Req) ->
-    gen_server:call(Pid, {?FUNCTION_NAME, Req}).
+    ?SVR_CALL(Pid, {?FUNCTION_NAME, Req}).
 
 insert_records(Pid, Req) ->
-    gen_server:call(Pid, {?FUNCTION_NAME, Req}).
+    ?SVR_CALL(Pid, {?FUNCTION_NAME, Req}).
 
 ping(Pid) ->
-    gen_server:call(Pid, ?FUNCTION_NAME).
+    ?SVR_CALL(Pid, ?FUNCTION_NAME).
 
 %% gen_server.
 init([
@@ -85,9 +89,13 @@ handle_call({insert_tablet, Req}, _From, #{sessionId := SessionId} = State) ->
     {State2, Result} = do_api_call(State, insertTablet, TsReq),
     {reply, Result, State2};
 handle_call({insert_records, Req}, _From, #{sessionId := SessionId} = State) ->
-    TsReq = iotdb_api_insert_records:make(SessionId, Req),
-    {State2, Result} = do_api_call(State, insertTablet, TsReq),
-    {reply, Result, State2};
+    case iotdb_api_insert_records:make(SessionId, Req) of
+        {ok, TsReq} ->
+            {State2, Result} = do_api_call(State, insertRecords, TsReq),
+            {reply, Result, State2};
+        Error ->
+            {reply, Error, State}
+    end;
 handle_call(ping, _From, #{client := Client, sessionId := SessionId} = State) ->
     Req = #tSInsertRecordReq{
         sessionId = SessionId,
