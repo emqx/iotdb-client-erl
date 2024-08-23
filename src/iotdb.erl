@@ -105,15 +105,23 @@ handle_call(ping, _From, #{client := Client, sessionId := SessionId} = State) ->
         timestamp = erlang:system_time(millisecond),
         isAligned = false
     },
-    {Succ, Client1, Result} = call_thrift(Client, testInsertRecord, [Req]),
-    {reply, {Succ, Result}, State#{client := Client1}};
-handle_call(_Request, _From, State) ->
+    case call_thrift(Client, testInsertRecord, [Req]) of
+        {ok, Client1, Result} ->
+            {reply, {ok, Result}, State#{client := Client1}};
+        {error, _, Result} ->
+            Reason = {shutdown, {ping_failed, Result}},
+            {stop, Reason, {error, Result}, State}
+    end;
+handle_call(Request, From, State) ->
+    logger:error("iotdb got unexpected call: ~p, from: ~p", [Request, From]),
     {reply, ignored, State}.
 
-handle_cast(_Msg, State) ->
+handle_cast(Msg, State) ->
+    logger:error("iotdb got unexpected cast: ~p", [Msg]),
     {noreply, State}.
 
-handle_info(_Info, State) ->
+handle_info(Info, State) ->
+    logger:error("iotdb got unexpected info: ~p", [Info]),
     {noreply, State}.
 
 terminate(_Reason, #{client := Client, sessionId := SessionId}) ->
