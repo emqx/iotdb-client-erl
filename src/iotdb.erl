@@ -145,7 +145,7 @@ call_thrift(Client, Function, Args) ->
             {error, Client1, Error}
     end.
 
-check_status(#tSStatus{code = Code}, Client, Result) when Code =:= 200 ->
+check_status(#tSStatus{code = Code}, Client, Result) when Code =:= 200; Code =:= 400 ->
     {ok, Client, Result};
 check_status(#tSStatus{code = Code, message = Message}, Client, _) ->
     {error, Client, #{code => Code, message => Message}}.
