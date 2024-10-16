@@ -1,4 +1,0 @@
-[{<<"thrift">>,
-  {git,"https://github.com/emqx/thrift.erl.git",
-       {ref,"e236df1244da0adbff0d9a7860fd609ed8e57d00"}},
-  0}].
