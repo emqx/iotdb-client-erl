@@ -1,4 +1,4 @@
 [{<<"thrift">>,
-  {git,"https://github.com/deadtrickster/thrift.erl.git",
-       {ref,"b221ac0220c1840dd04ffdf08e55c8b030f6b327"}},
+  {git,"https://github.com/emqx/thrift.erl.git",
+       {ref,"e236df1244da0adbff0d9a7860fd609ed8e57d00"}},
   0}].
