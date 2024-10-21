@@ -20,7 +20,7 @@
 ]).
 
 -type address() :: #{
-    host := binary(),
+    hostname := binary(),
     port := pos_integer()
 }.
 
@@ -151,9 +151,10 @@ do_api_call(
     {Succ, State1, Result} = timeout_safe_call_thrift(State, Function, [Req]),
     {State1, {Succ, Result}}.
 
+%% compatible with legacy configurations
 normalize_config(#{host := Host, port := Port} = Cfg) ->
     Cfg1 = maps:without([host, port], Cfg),
-    convert_options(Cfg1#{addresses => [#{host => Host, port => Port}]});
+    convert_options(Cfg1#{addresses => [#{hostname => Host, port => Port}]});
 normalize_config(#{addresses := _} = Cfg) ->
     convert_options(Cfg).
 
@@ -165,7 +166,7 @@ try_connect(#{addresses := Addresses} = State) ->
     try_connect(Addresses, State, {error, <<"No Address">>}).
 
 try_connect(
-    [#{host := Host, port := Port} | Addresses],
+    [#{hostname := Host, port := Port} | Addresses],
     #{
         version := Version,
         zoneId := ZoneId,
@@ -183,7 +184,7 @@ try_connect(
                 username = Username,
                 password = unwrap_password(Password)
             },
-            case call_thrift(State#{client := Client}, openSession, [OpenReq]) of
+            case call_thrift(State#{client => Client}, openSession, [OpenReq]) of
                 {ok, State1, Result} ->
                     #tSOpenSessionResp{sessionId = SessionId} = Result,
                     {ok, State1#{
