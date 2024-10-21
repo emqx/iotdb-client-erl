@@ -19,10 +19,21 @@
     code_change/3
 ]).
 
+-type address() :: #{
+    host := binary(),
+    port := pos_integer()
+}.
+
 -type state() ::
     #{
         client := thrift_client:tclient(),
-        sessionId := non_neg_integer()
+        sessionId := non_neg_integer(),
+        addresses := [address()],
+        version := integer(),
+        zoneId := binary(),
+        username := binary(),
+        password := binary() | function(),
+        options := map()
     }.
 
 -define(SERVICE, iotdb_IClientRPCService_thrift).
@@ -47,42 +58,10 @@ ping(Pid) ->
     ?SVR_CALL(Pid, ?FUNCTION_NAME).
 
 %% gen_server.
-init([
-    #{
-        version := Version,
-        host := Host,
-        port := Port,
-        zoneId := ZoneId,
-        username := Username,
-        options := Options0
-    } = Cfg
-]) ->
-    Options1 = Options0#{framed => true},
-    Options = maps:to_list(Options1),
-    case thrift_client_util:new(Host, Port, ?SERVICE, Options) of
-        {ok, Client} ->
-            Password = maps:get(password, Cfg, undefined),
-            OpenReq = #tSOpenSessionReq{
-                client_protocol = Version,
-                zoneId = ZoneId,
-                username = Username,
-                password = Password
-            },
-            case call_thrift(Client, openSession, [OpenReq]) of
-                {ok, Client1, Result} ->
-                    #tSOpenSessionResp{sessionId = SessionId} = Result,
-                    State =
-                        #{
-                            client => Client1,
-                            sessionId => SessionId
-                        },
-                    {ok, State};
-                {error, _, Error} ->
-                    {error, Error}
-            end;
-        Error ->
-            Error
-    end.
+init([Cfg0]) ->
+    Cfg = normalize_config(Cfg0),
+    InitState = maps:with([addresses, version, zoneId, username, password, options], Cfg),
+    try_connect(InitState).
 
 handle_call({insert_tablet, Req}, _From, #{sessionId := SessionId} = State) ->
     TsReq = iotdb_api_insert_tablet:make(SessionId, Req),
@@ -96,7 +75,7 @@ handle_call({insert_records, Req}, _From, #{sessionId := SessionId} = State) ->
         Error ->
             {reply, Error, State}
     end;
-handle_call(ping, _From, #{client := Client, sessionId := SessionId} = State) ->
+handle_call(ping, _From, #{sessionId := SessionId} = State) ->
     Req = #tSInsertRecordReq{
         sessionId = SessionId,
         prefixPath = <<>>,
@@ -105,12 +84,12 @@ handle_call(ping, _From, #{client := Client, sessionId := SessionId} = State) ->
         timestamp = erlang:system_time(millisecond),
         isAligned = false
     },
-    case call_thrift(Client, testInsertRecord, [Req]) of
-        {ok, Client1, Result} ->
-            {reply, {ok, Result}, State#{client := Client1}};
-        {error, _, Result} ->
+    case timeout_safe_call_thrift(State, testInsertRecord, [Req]) of
+        {ok, State1, Result} ->
+            {reply, {ok, Result}, State1};
+        {error, State1, Result} ->
             Reason = {shutdown, {ping_failed, Result}},
-            {stop, Reason, {error, Result}, State}
+            {stop, Reason, {error, Result}, State1}
     end;
 handle_call(Request, From, State) ->
     logger:error("iotdb got unexpected call: ~p, from: ~p", [Request, From]),
@@ -124,9 +103,9 @@ handle_info(Info, State) ->
     logger:error("iotdb got unexpected info: ~p", [Info]),
     {noreply, State}.
 
-terminate(_Reason, #{client := Client, sessionId := SessionId}) ->
+terminate(_Reason, #{sessionId := SessionId} = State) ->
     Req = #tSCloseSessionReq{sessionId = SessionId},
-    _ = call_thrift(Client, closeSession, [Req]),
+    _ = call_thrift(State, closeSession, [Req]),
     ok;
 terminate(_Reason, _State) ->
     ok.
@@ -134,26 +113,92 @@ terminate(_Reason, _State) ->
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
-call_thrift(Client, Function, Args) ->
+call_thrift(#{client := Client} = State, Function, Args) ->
     {Client1, Res} = thrift_client:call(Client, Function, Args),
+    State1 = State#{client := Client1},
     case Res of
         {ok, Result} when is_record(Result, tSStatus) ->
-            check_status(Result, Client1, Result);
+            check_status(Result, State1, Result);
         {ok, Result} ->
-            check_status(erlang:element(2, Result), Client1, Result);
+            check_status(erlang:element(2, Result), State1, Result);
         {error, Error} ->
-            {error, Client1, Error}
+            {error, State1, Error}
     end.
 
-check_status(#tSStatus{code = Code}, Client, Result) when Code =:= 200; Code =:= 400 ->
-    {ok, Client, Result};
-check_status(#tSStatus{code = Code, message = Message}, Client, _) ->
-    {error, Client, #{code => Code, message => Message}}.
+timeout_safe_call_thrift(State, Function, Args) ->
+    case call_thrift(State, Function, Args) of
+        {error, State1, timeout} ->
+            case try_connect(State1) of
+                {ok, State2} ->
+                    call_thrift(State2, Function, Args);
+                {error, Error} ->
+                    {error, State1, Error}
+            end;
+        Any ->
+            Any
+    end.
+
+check_status(#tSStatus{code = Code}, State, Result) when Code =:= 200; Code =:= 400 ->
+    {ok, State, Result};
+check_status(#tSStatus{code = Code, message = Message}, State, _) ->
+    {error, State, #{code => Code, message => Message}}.
 
 do_api_call(
-    #{client := Client} = State,
+    State,
     Function,
     Req
 ) ->
-    {Succ, Client2, Result} = call_thrift(Client, Function, [Req]),
-    {State#{client := Client2}, {Succ, Result}}.
+    {Succ, State1, Result} = timeout_safe_call_thrift(State, Function, [Req]),
+    {State1, {Succ, Result}}.
+
+normalize_config(#{host := Host, port := Port} = Cfg) ->
+    Cfg1 = maps:without([host, port], Cfg),
+    convert_options(Cfg1#{addresses => [#{host => Host, port => Port}]});
+normalize_config(#{addresses := _} = Cfg) ->
+    convert_options(Cfg).
+
+convert_options(#{options := Options0} = Cfg) ->
+    Options1 = Options0#{framed => true},
+    Cfg#{options := maps:to_list(Options1)}.
+
+try_connect(#{addresses := Addresses} = State) ->
+    try_connect(Addresses, State, {error, <<"No Address">>}).
+
+try_connect(
+    [#{host := Host, port := Port} | Addresses],
+    #{
+        version := Version,
+        zoneId := ZoneId,
+        username := Username,
+        password := Password,
+        options := Options
+    } = State,
+    _
+) ->
+    case thrift_client_util:new(Host, Port, ?SERVICE, Options) of
+        {ok, Client} ->
+            OpenReq = #tSOpenSessionReq{
+                client_protocol = Version,
+                zoneId = ZoneId,
+                username = Username,
+                password = unwrap_password(Password)
+            },
+            case call_thrift(State#{client := Client}, openSession, [OpenReq]) of
+                {ok, State1, Result} ->
+                    #tSOpenSessionResp{sessionId = SessionId} = Result,
+                    {ok, State1#{
+                        sessionId => SessionId
+                    }};
+                {error, _, Error} ->
+                    try_connect(Addresses, State, {error, Error})
+            end;
+        Error ->
+            try_connect(Addresses, State, Error)
+    end;
+try_connect([], _Options, Error) ->
+    Error.
+
+unwrap_password(Fun) when is_function(Fun) ->
+    Fun();
+unwrap_password(Bin) when is_binary(Bin) ->
+    Bin.
