@@ -127,7 +127,7 @@ call_thrift(#{client := Client} = State, Function, Args) ->
 
 timeout_safe_call_thrift(State, Function, Args) ->
     case call_thrift(State, Function, Args) of
-        {error, State1, timeout} ->
+        {error, State1, Reason} when Reason =:= timeout; Reason =:= closed ->
             case try_connect(State1) of
                 {ok, State2} ->
                     call_thrift(State2, Function, Args);
