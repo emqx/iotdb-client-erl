@@ -16,6 +16,24 @@
 -define(Iotdb_common_TRegionMigrateFailedType_RemoveConsensusGroupFailed, 2).
 -define(Iotdb_common_TRegionMigrateFailedType_DeleteRegionFailed, 3).
 -define(Iotdb_common_TRegionMigrateFailedType_CreateRegionFailed, 4).
+-define(Iotdb_common_TRegionMigrateFailedType_Disconnect, 5).
+
+-define(Iotdb_common_TRegionMaintainTaskStatus_TASK_NOT_EXIST, 0).
+-define(Iotdb_common_TRegionMaintainTaskStatus_PROCESSING, 1).
+-define(Iotdb_common_TRegionMaintainTaskStatus_SUCCESS, 2).
+-define(Iotdb_common_TRegionMaintainTaskStatus_FAIL, 3).
+
+-define(Iotdb_common_ThrottleType_REQUEST_NUMBER, 0).
+-define(Iotdb_common_ThrottleType_REQUEST_SIZE, 1).
+-define(Iotdb_common_ThrottleType_WRITE_NUMBER, 2).
+-define(Iotdb_common_ThrottleType_WRITE_SIZE, 3).
+-define(Iotdb_common_ThrottleType_READ_NUMBER, 4).
+-define(Iotdb_common_ThrottleType_READ_SIZE, 5).
+
+-define(Iotdb_common_TServiceType_ConfigNodeInternalService, 0).
+-define(Iotdb_common_TServiceType_DataNodeInternalService, 1).
+-define(Iotdb_common_TServiceType_DataNodeMPPService, 2).
+-define(Iotdb_common_TServiceType_DataNodeExternalService, 3).
 
 -define(Iotdb_common_TAggregationType_COUNT, 0).
 -define(Iotdb_common_TAggregationType_AVG, 1).
@@ -28,6 +46,28 @@
 -define(Iotdb_common_TAggregationType_MIN_VALUE, 8).
 -define(Iotdb_common_TAggregationType_EXTREME, 9).
 -define(Iotdb_common_TAggregationType_COUNT_IF, 10).
+-define(Iotdb_common_TAggregationType_TIME_DURATION, 11).
+-define(Iotdb_common_TAggregationType_MODE, 12).
+-define(Iotdb_common_TAggregationType_COUNT_TIME, 13).
+-define(Iotdb_common_TAggregationType_STDDEV, 14).
+-define(Iotdb_common_TAggregationType_STDDEV_POP, 15).
+-define(Iotdb_common_TAggregationType_STDDEV_SAMP, 16).
+-define(Iotdb_common_TAggregationType_VARIANCE, 17).
+-define(Iotdb_common_TAggregationType_VAR_POP, 18).
+-define(Iotdb_common_TAggregationType_VAR_SAMP, 19).
+-define(Iotdb_common_TAggregationType_MAX_BY, 20).
+-define(Iotdb_common_TAggregationType_MIN_BY, 21).
+-define(Iotdb_common_TAggregationType_UDAF, 22).
+-define(Iotdb_common_TAggregationType_FIRST, 23).
+-define(Iotdb_common_TAggregationType_LAST, 24).
+-define(Iotdb_common_TAggregationType_FIRST_BY, 25).
+-define(Iotdb_common_TAggregationType_LAST_BY, 26).
+-define(Iotdb_common_TAggregationType_MIN, 27).
+-define(Iotdb_common_TAggregationType_MAX, 28).
+-define(Iotdb_common_TAggregationType_COUNT_ALL, 29).
+-define(Iotdb_common_TAggregationType_APPROX_COUNT_DISTINCT, 30).
+-define(Iotdb_common_TAggregationType_APPROX_MOST_FREQUENT, 31).
+-define(Iotdb_common_TAggregationType_APPROX_PERCENTILE, 32).
 
 -define(Iotdb_common_TrainingState_PENDING, 0).
 -define(Iotdb_common_TrainingState_RUNNING, 1).
@@ -35,11 +75,13 @@
 -define(Iotdb_common_TrainingState_FAILED, 3).
 -define(Iotdb_common_TrainingState_DROPPING, 4).
 
--define(Iotdb_common_ModelTask_FORECAST, 0).
+-define(Iotdb_common_Model_TREE, 0).
+-define(Iotdb_common_Model_TABLE, 1).
 
--define(Iotdb_common_EvaluateMetric_MSE, 0).
--define(Iotdb_common_EvaluateMetric_MAE, 1).
--define(Iotdb_common_EvaluateMetric_RMSE, 2).
+-define(Iotdb_common_FunctionType_NONE, 0).
+-define(Iotdb_common_FunctionType_SCALAR, 1).
+-define(Iotdb_common_FunctionType_AGGREGATE, 2).
+-define(Iotdb_common_FunctionType_TABLE, 3).
 
 %% struct 'tEndPoint'
 
@@ -52,7 +94,8 @@
 -record('tSStatus', {'code' :: integer(),
                      'message' :: string() | binary() | 'undefined',
                      'subStatus' :: list() | 'undefined',
-                     'redirectNode' :: 'tEndPoint'() | 'undefined'}).
+                     'redirectNode' :: 'tEndPoint'() | 'undefined',
+                     'needRetry' :: boolean() | 'undefined'}).
 -type 'tSStatus'() :: #'tSStatus'{}.
 
 %% struct 'tConsensusGroupId'
@@ -100,16 +143,29 @@
                               'schemaRegionConsensusEndPoint' = #'tEndPoint'{} :: 'tEndPoint'()}).
 -type 'tDataNodeLocation'() :: #'tDataNodeLocation'{}.
 
+%% struct 'tAINodeLocation'
+
+-record('tAINodeLocation', {'aiNodeId' :: integer(),
+                            'internalEndPoint' = #'tEndPoint'{} :: 'tEndPoint'()}).
+-type 'tAINodeLocation'() :: #'tAINodeLocation'{}.
+
 %% struct 'tDataNodeConfiguration'
 
 -record('tDataNodeConfiguration', {'location' = #'tDataNodeLocation'{} :: 'tDataNodeLocation'(),
                                    'resource' = #'tNodeResource'{} :: 'tNodeResource'()}).
 -type 'tDataNodeConfiguration'() :: #'tDataNodeConfiguration'{}.
 
+%% struct 'tAINodeConfiguration'
+
+-record('tAINodeConfiguration', {'location' = #'tAINodeLocation'{} :: 'tAINodeLocation'(),
+                                 'resource' = #'tNodeResource'{} :: 'tNodeResource'()}).
+-type 'tAINodeConfiguration'() :: #'tAINodeConfiguration'{}.
+
 %% struct 'tFlushReq'
 
 -record('tFlushReq', {'isSeq' :: string() | binary() | 'undefined',
-                      'storageGroups' :: list() | 'undefined'}).
+                      'storageGroups' :: list() | 'undefined',
+                      'regionIds' :: list() | 'undefined'}).
 -type 'tFlushReq'() :: #'tFlushReq'{}.
 
 %% struct 'tSettleReq'
@@ -123,11 +179,23 @@
                         'nodeType' :: integer()}).
 -type 'tSchemaNode'() :: #'tSchemaNode'{}.
 
+%% struct 'tSetConfigurationReq'
+
+-record('tSetConfigurationReq', {'configs' = #{} :: map(),
+                                 'nodeId' :: integer()}).
+-type 'tSetConfigurationReq'() :: #'tSetConfigurationReq'{}.
+
 %% struct 'tSetTTLReq'
 
--record('tSetTTLReq', {'storageGroupPathPattern' = [] :: list(),
-                       'tTL' :: integer()}).
+-record('tSetTTLReq', {'pathPattern' = [] :: list(),
+                       'tTL' :: integer(),
+                       'isDataBase' :: boolean()}).
 -type 'tSetTTLReq'() :: #'tSetTTLReq'{}.
+
+%% struct 'tShowTTLReq'
+
+-record('tShowTTLReq', {'pathPattern' = [] :: list()}).
+-type 'tShowTTLReq'() :: #'tShowTTLReq'{}.
 
 %% struct 'tFile'
 
@@ -140,5 +208,116 @@
 -record('tFilesResp', {'status' = #'tSStatus'{} :: 'tSStatus'(),
                        'files' = [] :: list()}).
 -type 'tFilesResp'() :: #'tFilesResp'{}.
+
+%% struct 'tSpaceQuota'
+
+-record('tSpaceQuota', {'diskSize' :: integer() | 'undefined',
+                        'deviceNum' :: integer() | 'undefined',
+                        'timeserieNum' :: integer() | 'undefined'}).
+-type 'tSpaceQuota'() :: #'tSpaceQuota'{}.
+
+%% struct 'tTimedQuota'
+
+-record('tTimedQuota', {'timeUnit' :: integer(),
+                        'softLimit' :: integer()}).
+-type 'tTimedQuota'() :: #'tTimedQuota'{}.
+
+%% struct 'tThrottleQuota'
+
+-record('tThrottleQuota', {'throttleLimit' :: map() | 'undefined',
+                           'memLimit' :: integer() | 'undefined',
+                           'cpuLimit' :: integer() | 'undefined'}).
+-type 'tThrottleQuota'() :: #'tThrottleQuota'{}.
+
+%% struct 'tSetSpaceQuotaReq'
+
+-record('tSetSpaceQuotaReq', {'database' = [] :: list(),
+                              'spaceLimit' = #'tSpaceQuota'{} :: 'tSpaceQuota'()}).
+-type 'tSetSpaceQuotaReq'() :: #'tSetSpaceQuotaReq'{}.
+
+%% struct 'tSetThrottleQuotaReq'
+
+-record('tSetThrottleQuotaReq', {'userName' :: string() | binary(),
+                                 'throttleQuota' = #'tThrottleQuota'{} :: 'tThrottleQuota'()}).
+-type 'tSetThrottleQuotaReq'() :: #'tSetThrottleQuotaReq'{}.
+
+%% struct 'tPipeHeartbeatResp'
+
+-record('tPipeHeartbeatResp', {'pipeMetaList' = [] :: list(),
+                               'pipeCompletedList' :: list() | 'undefined',
+                               'pipeRemainingEventCountList' :: list() | 'undefined',
+                               'pipeRemainingTimeList' :: list() | 'undefined'}).
+-type 'tPipeHeartbeatResp'() :: #'tPipeHeartbeatResp'{}.
+
+%% struct 'tLicense'
+
+-record('tLicense', {'licenseIssueTimestamp' :: integer(),
+                     'expireTimestamp' :: integer(),
+                     'dataNodeNumLimit' :: integer(),
+                     'cpuCoreNumLimit' :: integer(),
+                     'deviceNumLimit' :: integer(),
+                     'sensorNumLimit' :: integer(),
+                     'disconnectionFromActiveNodeTimeLimit' :: integer(),
+                     'mlNodeNumLimit' :: integer()}).
+-type 'tLicense'() :: #'tLicense'{}.
+
+%% struct 'tLoadSample'
+
+-record('tLoadSample', {'cpuUsageRate' :: float(),
+                        'memoryUsageRate' :: float(),
+                        'diskUsageRate' :: float(),
+                        'freeDiskSpace' :: float()}).
+-type 'tLoadSample'() :: #'tLoadSample'{}.
+
+%% struct 'tServiceProvider'
+
+-record('tServiceProvider', {'endPoint' = #'tEndPoint'{} :: 'tEndPoint'(),
+                             'serviceType' :: integer(),
+                             'nodeId' :: integer()}).
+-type 'tServiceProvider'() :: #'tServiceProvider'{}.
+
+%% struct 'tSender'
+
+-record('tSender', {'dataNodeLocation' :: 'tDataNodeLocation'() | 'undefined',
+                    'configNodeLocation' :: 'tConfigNodeLocation'() | 'undefined'}).
+-type 'tSender'() :: #'tSender'{}.
+
+%% struct 'tTestConnectionResult'
+
+-record('tTestConnectionResult', {'serviceProvider' = #'tServiceProvider'{} :: 'tServiceProvider'(),
+                                  'sender' = #'tSender'{} :: 'tSender'(),
+                                  'success' :: boolean(),
+                                  'reason' :: string() | binary() | 'undefined'}).
+-type 'tTestConnectionResult'() :: #'tTestConnectionResult'{}.
+
+%% struct 'tTestConnectionResp'
+
+-record('tTestConnectionResp', {'status' = #'tSStatus'{} :: 'tSStatus'(),
+                                'resultList' = [] :: list()}).
+-type 'tTestConnectionResp'() :: #'tTestConnectionResp'{}.
+
+%% struct 'tNodeLocations'
+
+-record('tNodeLocations', {'configNodeLocations' :: list() | 'undefined',
+                           'dataNodeLocations' :: list() | 'undefined'}).
+-type 'tNodeLocations'() :: #'tNodeLocations'{}.
+
+%% struct 'tShowConfigurationTemplateResp'
+
+-record('tShowConfigurationTemplateResp', {'status' = #'tSStatus'{} :: 'tSStatus'(),
+                                           'content' :: string() | binary()}).
+-type 'tShowConfigurationTemplateResp'() :: #'tShowConfigurationTemplateResp'{}.
+
+%% struct 'tShowConfigurationResp'
+
+-record('tShowConfigurationResp', {'status' = #'tSStatus'{} :: 'tSStatus'(),
+                                   'content' :: string() | binary()}).
+-type 'tShowConfigurationResp'() :: #'tShowConfigurationResp'{}.
+
+%% struct 'tShowAppliedConfigurationsResp'
+
+-record('tShowAppliedConfigurationsResp', {'status' = #'tSStatus'{} :: 'tSStatus'(),
+                                           'data' :: map() | 'undefined'}).
+-type 'tShowAppliedConfigurationsResp'() :: #'tShowAppliedConfigurationsResp'{}.
 
 -endif.

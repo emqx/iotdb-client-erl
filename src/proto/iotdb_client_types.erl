@@ -49,7 +49,10 @@ struct_info('tSExecuteStatementResp') ->
           {11, {list, byte}},
           {12, {struct, {'iotdb_client_types', 'tSTracingInfo'}}},
           {13, {list, string}},
-          {14, bool}]}
+          {14, bool},
+          {15, string},
+          {16, bool},
+          {17, {list, i32}}]}
 ;
 
 struct_info('tSOpenSessionResp') ->
@@ -99,7 +102,8 @@ struct_info('tSCancelOperationReq') ->
 struct_info('tSCloseOperationReq') ->
   {struct, [{1, i64},
           {2, i64},
-          {3, i64}]}
+          {3, i64},
+          {4, string}]}
 ;
 
 struct_info('tSFetchResultsReq') ->
@@ -108,7 +112,8 @@ struct_info('tSFetchResultsReq') ->
           {3, i32},
           {4, i64},
           {5, bool},
-          {6, i64}]}
+          {6, i64},
+          {7, i64}]}
 ;
 
 struct_info('tSFetchResultsResp') ->
@@ -150,7 +155,9 @@ struct_info('tSInsertRecordReq') ->
           {3, {list, string}},
           {4, string},
           {5, i64},
-          {6, bool}]}
+          {6, bool},
+          {7, bool},
+          {8, {list, byte}}]}
 ;
 
 struct_info('tSInsertStringRecordReq') ->
@@ -171,7 +178,12 @@ struct_info('tSInsertTabletReq') ->
           {5, string},
           {6, {list, i32}},
           {7, i32},
-          {8, bool}]}
+          {8, bool},
+          {9, bool},
+          {10, {list, byte}},
+          {11, bool},
+          {12, {list, byte}},
+          {13, byte}]}
 ;
 
 struct_info('tSInsertTabletsReq') ->
@@ -261,7 +273,8 @@ struct_info('tSRawDataQueryReq') ->
           {6, i64},
           {7, bool},
           {8, bool},
-          {9, i64}]}
+          {9, i64},
+          {10, bool}]}
 ;
 
 struct_info('tSLastDataQueryReq') ->
@@ -272,7 +285,31 @@ struct_info('tSLastDataQueryReq') ->
           {5, i64},
           {6, bool},
           {7, bool},
-          {8, i64}]}
+          {8, i64},
+          {9, bool}]}
+;
+
+struct_info('tSFastLastDataQueryForOnePrefixPathReq') ->
+  {struct, [{1, i64},
+          {2, {list, string}},
+          {3, i32},
+          {4, i64},
+          {5, bool},
+          {6, bool},
+          {7, i64}]}
+;
+
+struct_info('tSFastLastDataQueryForOneDeviceReq') ->
+  {struct, [{1, i64},
+          {2, string},
+          {3, string},
+          {4, {list, string}},
+          {5, i32},
+          {6, i64},
+          {7, bool},
+          {8, bool},
+          {9, i64},
+          {10, bool}]}
 ;
 
 struct_info('tSAggregationQueryReq') ->
@@ -285,7 +322,8 @@ struct_info('tSAggregationQueryReq') ->
           {7, i64},
           {8, i64},
           {9, i32},
-          {10, i64}]}
+          {10, i64},
+          {11, bool}]}
 ;
 
 struct_info('tSCreateMultiTimeseriesReq') ->
@@ -305,13 +343,10 @@ struct_info('serverProperties') ->
           {2, {list, string}},
           {3, string},
           {4, i32},
-          {5, string},
-          {6, string},
-          {7, i32},
-          {8, i32},
-          {9, i32},
-          {10, bool},
-          {11, string}]}
+          {5, i32},
+          {6, bool},
+          {7, string},
+          {8, string}]}
 ;
 
 struct_info('tSSetSchemaTemplateReq') ->
@@ -368,6 +403,11 @@ struct_info('tSDropSchemaTemplateReq') ->
           {2, string}]}
 ;
 
+struct_info('tCreateTimeseriesUsingSchemaTemplateReq') ->
+  {struct, [{1, i64},
+          {2, {list, string}}]}
+;
+
 struct_info('tSyncIdentityInfo') ->
   {struct, [{1, string},
           {2, i64},
@@ -378,6 +418,30 @@ struct_info('tSyncIdentityInfo') ->
 struct_info('tSyncTransportMetaInfo') ->
   {struct, [{1, string},
           {2, i64}]}
+;
+
+struct_info('tPipeTransferReq') ->
+  {struct, [{1, byte},
+          {2, i16},
+          {3, string}]}
+;
+
+struct_info('tPipeTransferResp') ->
+  {struct, [{1, {struct, {'iotdb_common_types', 'tSStatus'}}},
+          {2, string}]}
+;
+
+struct_info('tPipeSubscribeReq') ->
+  {struct, [{1, byte},
+          {2, i16},
+          {3, string}]}
+;
+
+struct_info('tPipeSubscribeResp') ->
+  {struct, [{1, {struct, {'iotdb_common_types', 'tSStatus'}}},
+          {2, byte},
+          {3, i16},
+          {4, {list, string}}]}
 ;
 
 struct_info('tSBackupConfigurationResp') ->
@@ -439,7 +503,10 @@ struct_info_ext('tSExecuteStatementResp') ->
           {11, optional, {list, byte}, 'aliasColumns', []},
           {12, optional, {struct, {'iotdb_client_types', 'tSTracingInfo'}}, 'tracingInfo', #'tSTracingInfo'{}},
           {13, optional, {list, string}, 'queryResult', []},
-          {14, optional, bool, 'moreData', undefined}]}
+          {14, optional, bool, 'moreData', undefined},
+          {15, optional, string, 'database', undefined},
+          {16, optional, bool, 'tableModel', undefined},
+          {17, optional, {list, i32}, 'columnIndex2TsBlockColumnIndexList', []}]}
 ;
 
 struct_info_ext('tSOpenSessionResp') ->
@@ -489,7 +556,8 @@ struct_info_ext('tSCancelOperationReq') ->
 struct_info_ext('tSCloseOperationReq') ->
   {struct, [{1, required, i64, 'sessionId', undefined},
           {2, optional, i64, 'queryId', undefined},
-          {3, optional, i64, 'statementId', undefined}]}
+          {3, optional, i64, 'statementId', undefined},
+          {4, optional, string, 'preparedStatementName', undefined}]}
 ;
 
 struct_info_ext('tSFetchResultsReq') ->
@@ -498,7 +566,8 @@ struct_info_ext('tSFetchResultsReq') ->
           {3, required, i32, 'fetchSize', undefined},
           {4, required, i64, 'queryId', undefined},
           {5, required, bool, 'isAlign', undefined},
-          {6, optional, i64, 'timeout', undefined}]}
+          {6, optional, i64, 'timeout', undefined},
+          {7, optional, i64, 'statementId', undefined}]}
 ;
 
 struct_info_ext('tSFetchResultsResp') ->
@@ -540,7 +609,9 @@ struct_info_ext('tSInsertRecordReq') ->
           {3, required, {list, string}, 'measurements', []},
           {4, required, string, 'values', undefined},
           {5, required, i64, 'timestamp', undefined},
-          {6, optional, bool, 'isAligned', undefined}]}
+          {6, optional, bool, 'isAligned', undefined},
+          {7, optional, bool, 'isWriteToTable', undefined},
+          {8, optional, {list, byte}, 'columnCategoryies', []}]}
 ;
 
 struct_info_ext('tSInsertStringRecordReq') ->
@@ -561,7 +632,12 @@ struct_info_ext('tSInsertTabletReq') ->
           {5, required, string, 'timestamps', undefined},
           {6, required, {list, i32}, 'types', []},
           {7, required, i32, 'size', undefined},
-          {8, optional, bool, 'isAligned', undefined}]}
+          {8, optional, bool, 'isAligned', undefined},
+          {9, optional, bool, 'writeToTable', undefined},
+          {10, optional, {list, byte}, 'columnCategories', []},
+          {11, optional, bool, 'isCompressed', undefined},
+          {12, optional, {list, byte}, 'encodingTypes', []},
+          {13, optional, byte, 'compressType', undefined}]}
 ;
 
 struct_info_ext('tSInsertTabletsReq') ->
@@ -651,7 +727,8 @@ struct_info_ext('tSRawDataQueryReq') ->
           {6, required, i64, 'statementId', undefined},
           {7, optional, bool, 'enableRedirectQuery', undefined},
           {8, optional, bool, 'jdbcQuery', undefined},
-          {9, optional, i64, 'timeout', undefined}]}
+          {9, optional, i64, 'timeout', undefined},
+          {10, optional, bool, 'legalPathNodes', undefined}]}
 ;
 
 struct_info_ext('tSLastDataQueryReq') ->
@@ -662,7 +739,31 @@ struct_info_ext('tSLastDataQueryReq') ->
           {5, required, i64, 'statementId', undefined},
           {6, optional, bool, 'enableRedirectQuery', undefined},
           {7, optional, bool, 'jdbcQuery', undefined},
-          {8, optional, i64, 'timeout', undefined}]}
+          {8, optional, i64, 'timeout', undefined},
+          {9, optional, bool, 'legalPathNodes', undefined}]}
+;
+
+struct_info_ext('tSFastLastDataQueryForOnePrefixPathReq') ->
+  {struct, [{1, required, i64, 'sessionId', undefined},
+          {2, required, {list, string}, 'prefixes', []},
+          {3, optional, i32, 'fetchSize', undefined},
+          {4, required, i64, 'statementId', undefined},
+          {5, optional, bool, 'enableRedirectQuery', undefined},
+          {6, optional, bool, 'jdbcQuery', undefined},
+          {7, optional, i64, 'timeout', undefined}]}
+;
+
+struct_info_ext('tSFastLastDataQueryForOneDeviceReq') ->
+  {struct, [{1, required, i64, 'sessionId', undefined},
+          {2, required, string, 'db', undefined},
+          {3, required, string, 'deviceId', undefined},
+          {4, required, {list, string}, 'sensors', []},
+          {5, optional, i32, 'fetchSize', undefined},
+          {6, required, i64, 'statementId', undefined},
+          {7, optional, bool, 'enableRedirectQuery', undefined},
+          {8, optional, bool, 'jdbcQuery', undefined},
+          {9, optional, i64, 'timeout', undefined},
+          {10, optional, bool, 'legalPathNodes', undefined}]}
 ;
 
 struct_info_ext('tSAggregationQueryReq') ->
@@ -675,7 +776,8 @@ struct_info_ext('tSAggregationQueryReq') ->
           {7, optional, i64, 'interval', undefined},
           {8, optional, i64, 'slidingStep', undefined},
           {9, optional, i32, 'fetchSize', undefined},
-          {10, optional, i64, 'timeout', undefined}]}
+          {10, optional, i64, 'timeout', undefined},
+          {11, optional, bool, 'legalPathNodes', undefined}]}
 ;
 
 struct_info_ext('tSCreateMultiTimeseriesReq') ->
@@ -695,13 +797,10 @@ struct_info_ext('serverProperties') ->
           {2, required, {list, string}, 'supportedTimeAggregationOperations', []},
           {3, required, string, 'timestampPrecision', undefined},
           {4, undefined, i32, 'maxConcurrentClientNum', undefined},
-          {5, optional, string, 'watermarkSecretKey', undefined},
-          {6, optional, string, 'watermarkBitString', undefined},
-          {7, optional, i32, 'watermarkParamMarkRate', undefined},
-          {8, optional, i32, 'watermarkParamMaxRightBit', undefined},
-          {9, optional, i32, 'thriftMaxFrameSize', undefined},
-          {10, optional, bool, 'isReadOnly', undefined},
-          {11, optional, string, 'buildInfo', undefined}]}
+          {5, optional, i32, 'thriftMaxFrameSize', undefined},
+          {6, optional, bool, 'isReadOnly', undefined},
+          {7, optional, string, 'buildInfo', undefined},
+          {8, optional, string, 'logo', undefined}]}
 ;
 
 struct_info_ext('tSSetSchemaTemplateReq') ->
@@ -758,6 +857,11 @@ struct_info_ext('tSDropSchemaTemplateReq') ->
           {2, required, string, 'templateName', undefined}]}
 ;
 
+struct_info_ext('tCreateTimeseriesUsingSchemaTemplateReq') ->
+  {struct, [{1, required, i64, 'sessionId', undefined},
+          {2, required, {list, string}, 'devicePathList', []}]}
+;
+
 struct_info_ext('tSyncIdentityInfo') ->
   {struct, [{1, required, string, 'pipeName', undefined},
           {2, required, i64, 'createTime', undefined},
@@ -768,6 +872,30 @@ struct_info_ext('tSyncIdentityInfo') ->
 struct_info_ext('tSyncTransportMetaInfo') ->
   {struct, [{1, required, string, 'fileName', undefined},
           {2, required, i64, 'startIndex', undefined}]}
+;
+
+struct_info_ext('tPipeTransferReq') ->
+  {struct, [{1, required, byte, 'version', undefined},
+          {2, required, i16, 'type', undefined},
+          {3, required, string, 'body', undefined}]}
+;
+
+struct_info_ext('tPipeTransferResp') ->
+  {struct, [{1, required, {struct, {'iotdb_common_types', 'tSStatus'}}, 'status', #'tSStatus'{}},
+          {2, optional, string, 'body', undefined}]}
+;
+
+struct_info_ext('tPipeSubscribeReq') ->
+  {struct, [{1, required, byte, 'version', undefined},
+          {2, required, i16, 'type', undefined},
+          {3, optional, string, 'body', undefined}]}
+;
+
+struct_info_ext('tPipeSubscribeResp') ->
+  {struct, [{1, required, {struct, {'iotdb_common_types', 'tSStatus'}}, 'status', #'tSStatus'{}},
+          {2, required, byte, 'version', undefined},
+          {3, required, i16, 'type', undefined},
+          {4, optional, {list, string}, 'body', []}]}
 ;
 
 struct_info_ext('tSBackupConfigurationResp') ->
@@ -791,7 +919,7 @@ struct_info_ext('tSConnectionInfoResp') ->
 struct_info_ext(_) -> erlang:error(function_clause).
 
 struct_names() ->
-  ['tSQueryDataSet', 'tSQueryNonAlignDataSet', 'tSTracingInfo', 'tSExecuteStatementResp', 'tSOpenSessionResp', 'tSOpenSessionReq', 'tSCloseSessionReq', 'tSExecuteStatementReq', 'tSExecuteBatchStatementReq', 'tSGetOperationStatusReq', 'tSCancelOperationReq', 'tSCloseOperationReq', 'tSFetchResultsReq', 'tSFetchResultsResp', 'tSFetchMetadataResp', 'tSFetchMetadataReq', 'tSGetTimeZoneResp', 'tSSetTimeZoneReq', 'tSInsertRecordReq', 'tSInsertStringRecordReq', 'tSInsertTabletReq', 'tSInsertTabletsReq', 'tSInsertRecordsReq', 'tSInsertRecordsOfOneDeviceReq', 'tSInsertStringRecordsOfOneDeviceReq', 'tSInsertStringRecordsReq', 'tSDeleteDataReq', 'tSCreateTimeseriesReq', 'tSCreateAlignedTimeseriesReq', 'tSRawDataQueryReq', 'tSLastDataQueryReq', 'tSAggregationQueryReq', 'tSCreateMultiTimeseriesReq', 'serverProperties', 'tSSetSchemaTemplateReq', 'tSCreateSchemaTemplateReq', 'tSAppendSchemaTemplateReq', 'tSPruneSchemaTemplateReq', 'tSQueryTemplateReq', 'tSQueryTemplateResp', 'tSUnsetSchemaTemplateReq', 'tSDropSchemaTemplateReq', 'tSyncIdentityInfo', 'tSyncTransportMetaInfo', 'tSBackupConfigurationResp', 'tSConnectionInfo', 'tSConnectionInfoResp'].
+  ['tSQueryDataSet', 'tSQueryNonAlignDataSet', 'tSTracingInfo', 'tSExecuteStatementResp', 'tSOpenSessionResp', 'tSOpenSessionReq', 'tSCloseSessionReq', 'tSExecuteStatementReq', 'tSExecuteBatchStatementReq', 'tSGetOperationStatusReq', 'tSCancelOperationReq', 'tSCloseOperationReq', 'tSFetchResultsReq', 'tSFetchResultsResp', 'tSFetchMetadataResp', 'tSFetchMetadataReq', 'tSGetTimeZoneResp', 'tSSetTimeZoneReq', 'tSInsertRecordReq', 'tSInsertStringRecordReq', 'tSInsertTabletReq', 'tSInsertTabletsReq', 'tSInsertRecordsReq', 'tSInsertRecordsOfOneDeviceReq', 'tSInsertStringRecordsOfOneDeviceReq', 'tSInsertStringRecordsReq', 'tSDeleteDataReq', 'tSCreateTimeseriesReq', 'tSCreateAlignedTimeseriesReq', 'tSRawDataQueryReq', 'tSLastDataQueryReq', 'tSFastLastDataQueryForOnePrefixPathReq', 'tSFastLastDataQueryForOneDeviceReq', 'tSAggregationQueryReq', 'tSCreateMultiTimeseriesReq', 'serverProperties', 'tSSetSchemaTemplateReq', 'tSCreateSchemaTemplateReq', 'tSAppendSchemaTemplateReq', 'tSPruneSchemaTemplateReq', 'tSQueryTemplateReq', 'tSQueryTemplateResp', 'tSUnsetSchemaTemplateReq', 'tSDropSchemaTemplateReq', 'tCreateTimeseriesUsingSchemaTemplateReq', 'tSyncIdentityInfo', 'tSyncTransportMetaInfo', 'tPipeTransferReq', 'tPipeTransferResp', 'tPipeSubscribeReq', 'tPipeSubscribeResp', 'tSBackupConfigurationResp', 'tSConnectionInfo', 'tSConnectionInfoResp'].
 
 enum_info('tSProtocolVersion') ->
   [
@@ -804,7 +932,8 @@ enum_info('tSConnectionType') ->
   [
     {'tHRIFT_BASED', 0},
     {'mQTT_BASED', 1},
-    {'iNTERNAL', 2}
+    {'iNTERNAL', 2},
+    {'rEST_BASED', 3}
   ];
 
 enum_info(_) -> erlang:error(function_clause).

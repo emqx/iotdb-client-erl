@@ -16,6 +16,7 @@
 -define(Iotdb_client_TSConnectionType_THRIFT_BASED, 0).
 -define(Iotdb_client_TSConnectionType_MQTT_BASED, 1).
 -define(Iotdb_client_TSConnectionType_INTERNAL, 2).
+-define(Iotdb_client_TSConnectionType_REST_BASED, 3).
 
 %% struct 'tSQueryDataSet'
 
@@ -60,7 +61,10 @@
                                    'aliasColumns' :: list() | 'undefined',
                                    'tracingInfo' :: 'tSTracingInfo'() | 'undefined',
                                    'queryResult' :: list() | 'undefined',
-                                   'moreData' :: boolean() | 'undefined'}).
+                                   'moreData' :: boolean() | 'undefined',
+                                   'database' :: string() | binary() | 'undefined',
+                                   'tableModel' :: boolean() | 'undefined',
+                                   'columnIndex2TsBlockColumnIndexList' :: list() | 'undefined'}).
 -type 'tSExecuteStatementResp'() :: #'tSExecuteStatementResp'{}.
 
 %% struct 'tSOpenSessionResp'
@@ -118,7 +122,8 @@
 
 -record('tSCloseOperationReq', {'sessionId' :: integer(),
                                 'queryId' :: integer() | 'undefined',
-                                'statementId' :: integer() | 'undefined'}).
+                                'statementId' :: integer() | 'undefined',
+                                'preparedStatementName' :: string() | binary() | 'undefined'}).
 -type 'tSCloseOperationReq'() :: #'tSCloseOperationReq'{}.
 
 %% struct 'tSFetchResultsReq'
@@ -128,7 +133,8 @@
                               'fetchSize' :: integer(),
                               'queryId' :: integer(),
                               'isAlign' :: boolean(),
-                              'timeout' :: integer() | 'undefined'}).
+                              'timeout' :: integer() | 'undefined',
+                              'statementId' :: integer() | 'undefined'}).
 -type 'tSFetchResultsReq'() :: #'tSFetchResultsReq'{}.
 
 %% struct 'tSFetchResultsResp'
@@ -176,7 +182,9 @@
                               'measurements' = [] :: list(),
                               'values' :: string() | binary(),
                               'timestamp' :: integer(),
-                              'isAligned' :: boolean() | 'undefined'}).
+                              'isAligned' :: boolean() | 'undefined',
+                              'isWriteToTable' :: boolean() | 'undefined',
+                              'columnCategoryies' :: list() | 'undefined'}).
 -type 'tSInsertRecordReq'() :: #'tSInsertRecordReq'{}.
 
 %% struct 'tSInsertStringRecordReq'
@@ -199,7 +207,12 @@
                               'timestamps' :: string() | binary(),
                               'types' = [] :: list(),
                               'size' :: integer(),
-                              'isAligned' :: boolean() | 'undefined'}).
+                              'isAligned' :: boolean() | 'undefined',
+                              'writeToTable' :: boolean() | 'undefined',
+                              'columnCategories' :: list() | 'undefined',
+                              'isCompressed' :: boolean() | 'undefined',
+                              'encodingTypes' :: list() | 'undefined',
+                              'compressType' :: integer() | 'undefined'}).
 -type 'tSInsertTabletReq'() :: #'tSInsertTabletReq'{}.
 
 %% struct 'tSInsertTabletsReq'
@@ -298,7 +311,8 @@
                               'statementId' :: integer(),
                               'enableRedirectQuery' :: boolean() | 'undefined',
                               'jdbcQuery' :: boolean() | 'undefined',
-                              'timeout' :: integer() | 'undefined'}).
+                              'timeout' :: integer() | 'undefined',
+                              'legalPathNodes' :: boolean() | 'undefined'}).
 -type 'tSRawDataQueryReq'() :: #'tSRawDataQueryReq'{}.
 
 %% struct 'tSLastDataQueryReq'
@@ -310,8 +324,34 @@
                                'statementId' :: integer(),
                                'enableRedirectQuery' :: boolean() | 'undefined',
                                'jdbcQuery' :: boolean() | 'undefined',
-                               'timeout' :: integer() | 'undefined'}).
+                               'timeout' :: integer() | 'undefined',
+                               'legalPathNodes' :: boolean() | 'undefined'}).
 -type 'tSLastDataQueryReq'() :: #'tSLastDataQueryReq'{}.
+
+%% struct 'tSFastLastDataQueryForOnePrefixPathReq'
+
+-record('tSFastLastDataQueryForOnePrefixPathReq', {'sessionId' :: integer(),
+                                                   'prefixes' = [] :: list(),
+                                                   'fetchSize' :: integer() | 'undefined',
+                                                   'statementId' :: integer(),
+                                                   'enableRedirectQuery' :: boolean() | 'undefined',
+                                                   'jdbcQuery' :: boolean() | 'undefined',
+                                                   'timeout' :: integer() | 'undefined'}).
+-type 'tSFastLastDataQueryForOnePrefixPathReq'() :: #'tSFastLastDataQueryForOnePrefixPathReq'{}.
+
+%% struct 'tSFastLastDataQueryForOneDeviceReq'
+
+-record('tSFastLastDataQueryForOneDeviceReq', {'sessionId' :: integer(),
+                                               'db' :: string() | binary(),
+                                               'deviceId' :: string() | binary(),
+                                               'sensors' = [] :: list(),
+                                               'fetchSize' :: integer() | 'undefined',
+                                               'statementId' :: integer(),
+                                               'enableRedirectQuery' :: boolean() | 'undefined',
+                                               'jdbcQuery' :: boolean() | 'undefined',
+                                               'timeout' :: integer() | 'undefined',
+                                               'legalPathNodes' :: boolean() | 'undefined'}).
+-type 'tSFastLastDataQueryForOneDeviceReq'() :: #'tSFastLastDataQueryForOneDeviceReq'{}.
 
 %% struct 'tSAggregationQueryReq'
 
@@ -324,7 +364,8 @@
                                   'interval' :: integer() | 'undefined',
                                   'slidingStep' :: integer() | 'undefined',
                                   'fetchSize' :: integer() | 'undefined',
-                                  'timeout' :: integer() | 'undefined'}).
+                                  'timeout' :: integer() | 'undefined',
+                                  'legalPathNodes' :: boolean() | 'undefined'}).
 -type 'tSAggregationQueryReq'() :: #'tSAggregationQueryReq'{}.
 
 %% struct 'tSCreateMultiTimeseriesReq'
@@ -346,13 +387,10 @@
                              'supportedTimeAggregationOperations' = [] :: list(),
                              'timestampPrecision' :: string() | binary(),
                              'maxConcurrentClientNum' :: integer() | 'undefined',
-                             'watermarkSecretKey' :: string() | binary() | 'undefined',
-                             'watermarkBitString' :: string() | binary() | 'undefined',
-                             'watermarkParamMarkRate' :: integer() | 'undefined',
-                             'watermarkParamMaxRightBit' :: integer() | 'undefined',
                              'thriftMaxFrameSize' :: integer() | 'undefined',
                              'isReadOnly' :: boolean() | 'undefined',
-                             'buildInfo' :: string() | binary() | 'undefined'}).
+                             'buildInfo' :: string() | binary() | 'undefined',
+                             'logo' :: string() | binary() | 'undefined'}).
 -type 'serverProperties'() :: #'serverProperties'{}.
 
 %% struct 'tSSetSchemaTemplateReq'
@@ -417,6 +455,12 @@
                                     'templateName' :: string() | binary()}).
 -type 'tSDropSchemaTemplateReq'() :: #'tSDropSchemaTemplateReq'{}.
 
+%% struct 'tCreateTimeseriesUsingSchemaTemplateReq'
+
+-record('tCreateTimeseriesUsingSchemaTemplateReq', {'sessionId' :: integer(),
+                                                    'devicePathList' = [] :: list()}).
+-type 'tCreateTimeseriesUsingSchemaTemplateReq'() :: #'tCreateTimeseriesUsingSchemaTemplateReq'{}.
+
 %% struct 'tSyncIdentityInfo'
 
 -record('tSyncIdentityInfo', {'pipeName' :: string() | binary(),
@@ -430,6 +474,34 @@
 -record('tSyncTransportMetaInfo', {'fileName' :: string() | binary(),
                                    'startIndex' :: integer()}).
 -type 'tSyncTransportMetaInfo'() :: #'tSyncTransportMetaInfo'{}.
+
+%% struct 'tPipeTransferReq'
+
+-record('tPipeTransferReq', {'version' :: integer(),
+                             'type' :: integer(),
+                             'body' :: string() | binary()}).
+-type 'tPipeTransferReq'() :: #'tPipeTransferReq'{}.
+
+%% struct 'tPipeTransferResp'
+
+-record('tPipeTransferResp', {'status' = #'tSStatus'{} :: 'tSStatus'(),
+                              'body' :: string() | binary() | 'undefined'}).
+-type 'tPipeTransferResp'() :: #'tPipeTransferResp'{}.
+
+%% struct 'tPipeSubscribeReq'
+
+-record('tPipeSubscribeReq', {'version' :: integer(),
+                              'type' :: integer(),
+                              'body' :: string() | binary() | 'undefined'}).
+-type 'tPipeSubscribeReq'() :: #'tPipeSubscribeReq'{}.
+
+%% struct 'tPipeSubscribeResp'
+
+-record('tPipeSubscribeResp', {'status' = #'tSStatus'{} :: 'tSStatus'(),
+                               'version' :: integer(),
+                               'type' :: integer(),
+                               'body' :: list() | 'undefined'}).
+-type 'tPipeSubscribeResp'() :: #'tPipeSubscribeResp'{}.
 
 %% struct 'tSBackupConfigurationResp'
 
