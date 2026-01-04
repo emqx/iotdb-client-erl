@@ -23,10 +23,11 @@ make(
         dtypes := DataTypes,
         values := Values,
         timestamps := Timestamps
-    }
+    } = Req
 ) ->
     RowSize = erlang:length(Timestamps),
-    #tSInsertTabletReq{
+    WriteToTable = maps:get(writeToTable, Req, false),
+    Req1 = #tSInsertTabletReq{
         sessionId = SessionId,
         prefixPath = DeviceId,
         measurements = Measurements,
@@ -34,8 +35,17 @@ make(
         timestamps = timestamps_to_binary(Timestamps),
         types = types_to_enum(DataTypes),
         size = RowSize,
-        isAligned = IsAligned
-    }.
+        isAligned = IsAligned,
+        writeToTable = WriteToTable
+    },
+    case WriteToTable of
+        true ->
+            Req1#tSInsertTabletReq{
+                columnCategories = maps:get(columnCategories, Req, [])
+            };
+        _ ->
+            Req1
+    end.
 
 timestamps_to_binary(Timestamps) ->
     lists:foldr(

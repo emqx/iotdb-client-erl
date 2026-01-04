@@ -33,7 +33,10 @@
         zoneId := binary(),
         username := binary(),
         password := binary() | function(),
-        options := map()
+        options := map(),
+        sql_dialect := tree | table,
+        database := binary() | undefined,
+        statementId := non_neg_integer() | undefined
     }.
 
 -define(SERVICE, iotdb_IClientRPCService_thrift).
@@ -60,7 +63,10 @@ ping(Pid) ->
 %% gen_server.
 init([Cfg0]) ->
     Cfg = normalize_config(Cfg0),
-    InitState = maps:with([addresses, version, zoneId, username, password, options], Cfg),
+    InitState = maps:with(
+        [addresses, version, zoneId, username, password, options, sql_dialect, database],
+        Cfg
+    ),
     try_connect(InitState).
 
 handle_call({insert_tablet, Req}, _From, #{sessionId := SessionId} = State) ->
@@ -119,6 +125,8 @@ call_thrift(#{client := Client} = State, Function, Args) ->
     case Res of
         {ok, Result} when is_record(Result, tSStatus) ->
             check_status(Result, State1, Result);
+        {ok, Result} when is_integer(Result) ->
+            {ok, State1, Result};
         {ok, Result} ->
             check_status(erlang:element(2, Result), State1, Result);
         {error, Error} ->
@@ -182,14 +190,15 @@ try_connect(
                 client_protocol = Version,
                 zoneId = ZoneId,
                 username = Username,
-                password = unwrap_password(Password)
+                password = unwrap_password(Password),
+                configuration = build_open_session_conf(State)
             },
             case call_thrift(State#{client => Client}, openSession, [OpenReq]) of
                 {ok, State1, Result} ->
                     #tSOpenSessionResp{sessionId = SessionId} = Result,
-                    {ok, State1#{
+                    request_statement_id(State1#{
                         sessionId => SessionId
-                    }};
+                    });
                 {error, _, Error} ->
                     try_connect(Addresses, State, {error, Error})
             end;
@@ -199,7 +208,49 @@ try_connect(
 try_connect([], _Options, Error) ->
     Error.
 
+request_statement_id(State = #{sessionId := SessionId}) ->
+    SqlDialect = maps:get(sql_dialect, State, tree),
+    case SqlDialect of
+        tree ->
+            {ok, State};
+        table ->
+            case call_thrift(State, requestStatementId, [SessionId]) of
+                {ok, State1, Result} ->
+                    use_database(State1#{statementId => Result});
+                {error, _, Error} ->
+                    {error, {request_statement_id_failed, Error}}
+            end
+    end.
+
+use_database(State) ->
+    case maps:get(database, State, undefined) of
+        undefined ->
+            {ok, State};
+        Database ->
+            Req = #tSExecuteStatementReq{
+                sessionId = maps:get(sessionId, State),
+                statement = <<"USE ", Database/binary>>,
+                statementId = maps:get(statementId, State)
+            },
+            case do_api_call(State, executeUpdateStatementV2, Req) of
+                {_, {error, _} = Error} ->
+                    Error;
+                {State1, {ok, _}} ->
+                    {ok, State1}
+            end
+    end.
+
 unwrap_password(Fun) when is_function(Fun) ->
     Fun();
 unwrap_password(Bin) when is_binary(Bin) ->
     Bin.
+
+build_open_session_conf(State) ->
+    SqlDialect = maps:get(sql_dialect, State, tree),
+    Configuration0 = dict:from_list([{<<"sql_dialect">>, atom_to_binary(SqlDialect)}]),
+    case maps:get(database, State, undefined) of
+        undefined ->
+            Configuration0;
+        Database ->
+            dict:store(<<"db">>, Database, Configuration0)
+    end.
