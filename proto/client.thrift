@@ -70,6 +70,10 @@ struct TSExecuteStatementResp {
   12: optional TSTracingInfo tracingInfo
   13: optional list<binary> queryResult
   14: optional bool moreData
+  // only be set while executing use XXX successfully
+  15: optional string database
+  16: optional bool tableModel
+  17: optional list<i32> columnIndex2TsBlockColumnIndexList
 }
 
 enum TSProtocolVersion {
@@ -160,6 +164,7 @@ struct TSCloseOperationReq {
   1: required i64 sessionId
   2: optional i64 queryId
   3: optional i64 statementId
+  4: optional string preparedStatementName
 }
 
 struct TSFetchResultsReq{
@@ -169,6 +174,7 @@ struct TSFetchResultsReq{
   4: required i64 queryId
   5: required bool isAlign
   6: optional i64 timeout
+  7: optional i64 statementId
 }
 
 struct TSFetchResultsResp{
@@ -212,6 +218,8 @@ struct TSInsertRecordReq {
   4: required binary values
   5: required i64 timestamp
   6: optional bool isAligned
+  7: optional bool isWriteToTable
+  8: optional list<byte> columnCategoryies
 }
 
 struct TSInsertStringRecordReq {
@@ -233,6 +241,11 @@ struct TSInsertTabletReq {
   6: required list<i32> types
   7: required i32 size
   8: optional bool isAligned
+  9: optional bool writeToTable
+  10: optional list<byte> columnCategories
+  11: optional bool isCompressed
+  12: optional list<byte> encodingTypes
+  13: optional byte compressType
 }
 
 struct TSInsertTabletsReq {
@@ -323,6 +336,7 @@ struct TSRawDataQueryReq {
   7: optional bool enableRedirectQuery
   8: optional bool jdbcQuery
   9: optional i64 timeout
+  10: optional bool legalPathNodes
 }
 
 struct TSLastDataQueryReq {
@@ -334,6 +348,30 @@ struct TSLastDataQueryReq {
   6: optional bool enableRedirectQuery
   7: optional bool jdbcQuery
   8: optional i64 timeout
+  9: optional bool legalPathNodes
+}
+
+struct TSFastLastDataQueryForOnePrefixPathReq {
+  1: required i64 sessionId
+  2: required list<string> prefixes
+  3: optional i32 fetchSize
+  4: required i64 statementId
+  5: optional bool enableRedirectQuery
+  6: optional bool jdbcQuery
+  7: optional i64 timeout
+}
+
+struct TSFastLastDataQueryForOneDeviceReq {
+  1: required i64 sessionId
+  2: required string db
+  3: required string deviceId
+  4: required list<string> sensors
+  5: optional i32 fetchSize
+  6: required i64 statementId
+  7: optional bool enableRedirectQuery
+  8: optional bool jdbcQuery
+  9: optional i64 timeout
+  10: optional bool legalPathNodes
 }
 
 struct TSAggregationQueryReq {
@@ -347,6 +385,7 @@ struct TSAggregationQueryReq {
   8: optional i64 slidingStep
   9: optional i32 fetchSize
   10: optional i64 timeout
+  11: optional bool legalPathNodes
 }
 
 struct TSCreateMultiTimeseriesReq {
@@ -366,13 +405,10 @@ struct ServerProperties {
   2: required list<string> supportedTimeAggregationOperations;
   3: required string timestampPrecision;
   4: i32 maxConcurrentClientNum;
-  5: optional string watermarkSecretKey;
-  6: optional string watermarkBitString
-  7: optional i32 watermarkParamMarkRate;
-  8: optional i32 watermarkParamMaxRightBit;
-  9: optional i32 thriftMaxFrameSize;
-  10:optional bool isReadOnly;
-  11:optional string buildInfo;
+  5: optional i32 thriftMaxFrameSize;
+  6: optional bool isReadOnly;
+  7: optional string buildInfo;
+  8: optional string logo;
 }
 
 struct TSSetSchemaTemplateReq {
@@ -429,6 +465,11 @@ struct TSDropSchemaTemplateReq {
   2: required string templateName
 }
 
+struct TCreateTimeseriesUsingSchemaTemplateReq{
+  1: required i64 sessionId
+  2: required list<string> devicePathList
+}
+
 // The sender and receiver need to check some info to confirm validity
 struct TSyncIdentityInfo{
   // Sender needs to tell receiver its identity.
@@ -446,6 +487,30 @@ struct TSyncTransportMetaInfo{
   2:required i64 startIndex
 }
 
+struct TPipeTransferReq {
+  1:required i8 version
+  2:required i16 type
+  3:required binary body
+}
+
+struct TPipeTransferResp {
+  1:required common.TSStatus status
+  2:optional binary body
+}
+
+struct TPipeSubscribeReq {
+  1:required i8 version
+  2:required i16 type
+  3:optional binary body
+}
+
+struct TPipeSubscribeResp {
+  1:required common.TSStatus status
+  2:required i8 version
+  3:required i16 type
+  4:optional list<binary> body
+}
+
 struct TSBackupConfigurationResp {
   1: required common.TSStatus status
   2: optional bool enableOperationSync
@@ -457,6 +522,7 @@ enum TSConnectionType {
   THRIFT_BASED
   MQTT_BASED
   INTERNAL
+  REST_BASED
 }
 
 struct TSConnectionInfo {
@@ -481,6 +547,10 @@ service IClientRPCService {
   TSExecuteStatementResp executeRawDataQueryV2(1:TSRawDataQueryReq req);
 
   TSExecuteStatementResp executeLastDataQueryV2(1:TSLastDataQueryReq req);
+
+  TSExecuteStatementResp executeFastLastDataQueryForOnePrefixPath(1:TSFastLastDataQueryForOnePrefixPathReq req);
+
+  TSExecuteStatementResp executeFastLastDataQueryForOneDeviceV2(1:TSFastLastDataQueryForOneDeviceReq req);
 
   TSExecuteStatementResp executeAggregationQueryV2(1:TSAggregationQueryReq req);
 
@@ -572,11 +642,17 @@ service IClientRPCService {
 
   TSQueryTemplateResp querySchemaTemplate(1:TSQueryTemplateReq req);
 
+  common.TShowConfigurationTemplateResp showConfigurationTemplate();
+
+  common.TShowConfigurationResp showConfiguration(1:i32 nodeId);
+
   common.TSStatus setSchemaTemplate(1:TSSetSchemaTemplateReq req);
 
   common.TSStatus unsetSchemaTemplate(1:TSUnsetSchemaTemplateReq req);
 
   common.TSStatus dropSchemaTemplate(1:TSDropSchemaTemplateReq req);
+
+  common.TSStatus createTimeseriesUsingSchemaTemplate(1:TCreateTimeseriesUsingSchemaTemplateReq req);
 
   common.TSStatus handshake(TSyncIdentityInfo info);
 
@@ -584,7 +660,14 @@ service IClientRPCService {
 
   common.TSStatus sendFile(1:TSyncTransportMetaInfo metaInfo, 2:binary buff);
 
+  TPipeTransferResp pipeTransfer(TPipeTransferReq req);
+
+  TPipeSubscribeResp pipeSubscribe(TPipeSubscribeReq req);
+
   TSBackupConfigurationResp getBackupConfiguration();
 
   TSConnectionInfoResp fetchAllConnectionsInfo();
+
+  /** For other node's call */
+  common.TSStatus testConnectionEmptyRPC();
 }

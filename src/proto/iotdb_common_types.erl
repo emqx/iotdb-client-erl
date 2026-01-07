@@ -19,7 +19,8 @@ struct_info('tSStatus') ->
   {struct, [{1, i32},
           {2, string},
           {3, {list, {struct, {'iotdb_common_types', 'tSStatus'}}}},
-          {4, {struct, {'iotdb_common_types', 'tEndPoint'}}}]}
+          {4, {struct, {'iotdb_common_types', 'tEndPoint'}}},
+          {5, bool}]}
 ;
 
 struct_info('tConsensusGroupId') ->
@@ -60,14 +61,25 @@ struct_info('tDataNodeLocation') ->
           {6, {struct, {'iotdb_common_types', 'tEndPoint'}}}]}
 ;
 
+struct_info('tAINodeLocation') ->
+  {struct, [{1, i32},
+          {2, {struct, {'iotdb_common_types', 'tEndPoint'}}}]}
+;
+
 struct_info('tDataNodeConfiguration') ->
   {struct, [{1, {struct, {'iotdb_common_types', 'tDataNodeLocation'}}},
           {2, {struct, {'iotdb_common_types', 'tNodeResource'}}}]}
 ;
 
+struct_info('tAINodeConfiguration') ->
+  {struct, [{1, {struct, {'iotdb_common_types', 'tAINodeLocation'}}},
+          {2, {struct, {'iotdb_common_types', 'tNodeResource'}}}]}
+;
+
 struct_info('tFlushReq') ->
   {struct, [{1, string},
-          {2, {list, string}}]}
+          {2, {list, string}},
+          {3, {list, string}}]}
 ;
 
 struct_info('tSettleReq') ->
@@ -79,9 +91,19 @@ struct_info('tSchemaNode') ->
           {2, byte}]}
 ;
 
+struct_info('tSetConfigurationReq') ->
+  {struct, [{1, {map, string, string}},
+          {2, i32}]}
+;
+
 struct_info('tSetTTLReq') ->
   {struct, [{1, {list, string}},
-          {2, i64}]}
+          {2, i64},
+          {3, bool}]}
+;
+
+struct_info('tShowTTLReq') ->
+  {struct, [{1, {list, string}}]}
 ;
 
 struct_info('tFile') ->
@@ -92,6 +114,101 @@ struct_info('tFile') ->
 struct_info('tFilesResp') ->
   {struct, [{1, {struct, {'iotdb_common_types', 'tSStatus'}}},
           {2, {list, {struct, {'iotdb_common_types', 'tFile'}}}}]}
+;
+
+struct_info('tSpaceQuota') ->
+  {struct, [{1, i64},
+          {2, i64},
+          {3, i64}]}
+;
+
+struct_info('tTimedQuota') ->
+  {struct, [{1, i64},
+          {2, i64}]}
+;
+
+struct_info('tThrottleQuota') ->
+  {struct, [{1, {map, i32, {struct, {'iotdb_common_types', 'tTimedQuota'}}}},
+          {2, i64},
+          {3, i32}]}
+;
+
+struct_info('tSetSpaceQuotaReq') ->
+  {struct, [{1, {list, string}},
+          {2, {struct, {'iotdb_common_types', 'tSpaceQuota'}}}]}
+;
+
+struct_info('tSetThrottleQuotaReq') ->
+  {struct, [{1, string},
+          {2, {struct, {'iotdb_common_types', 'tThrottleQuota'}}}]}
+;
+
+struct_info('tPipeHeartbeatResp') ->
+  {struct, [{1, {list, string}},
+          {2, {list, bool}},
+          {3, {list, i64}},
+          {4, {list, double}}]}
+;
+
+struct_info('tLicense') ->
+  {struct, [{1, i64},
+          {2, i64},
+          {4, i16},
+          {5, i32},
+          {6, i64},
+          {7, i64},
+          {8, i64},
+          {9, i16}]}
+;
+
+struct_info('tLoadSample') ->
+  {struct, [{1, double},
+          {2, double},
+          {3, double},
+          {4, double}]}
+;
+
+struct_info('tServiceProvider') ->
+  {struct, [{1, {struct, {'iotdb_common_types', 'tEndPoint'}}},
+          {2, i32},
+          {3, i32}]}
+;
+
+struct_info('tSender') ->
+  {struct, [{1, {struct, {'iotdb_common_types', 'tDataNodeLocation'}}},
+          {2, {struct, {'iotdb_common_types', 'tConfigNodeLocation'}}}]}
+;
+
+struct_info('tTestConnectionResult') ->
+  {struct, [{1, {struct, {'iotdb_common_types', 'tServiceProvider'}}},
+          {2, {struct, {'iotdb_common_types', 'tSender'}}},
+          {3, bool},
+          {4, string}]}
+;
+
+struct_info('tTestConnectionResp') ->
+  {struct, [{1, {struct, {'iotdb_common_types', 'tSStatus'}}},
+          {2, {list, {struct, {'iotdb_common_types', 'tTestConnectionResult'}}}}]}
+;
+
+struct_info('tNodeLocations') ->
+  {struct, [{1, {list, {struct, {'iotdb_common_types', 'tConfigNodeLocation'}}}},
+          {2, {list, {struct, {'iotdb_common_types', 'tDataNodeLocation'}}}}]}
+;
+
+struct_info('tShowConfigurationTemplateResp') ->
+  {struct, [{1, {struct, {'iotdb_common_types', 'tSStatus'}}},
+          {2, string}]}
+;
+
+struct_info('tShowConfigurationResp') ->
+  {struct, [{1, {struct, {'iotdb_common_types', 'tSStatus'}}},
+          {2, string}]}
+;
+
+struct_info('tShowAppliedConfigurationsResp') ->
+  {struct, [{1, {struct, {'iotdb_common_types', 'tSStatus'}}},
+          {2, {map, string, string}}]}
 ;
 
 struct_info(_) -> erlang:error(function_clause).
@@ -105,7 +222,8 @@ struct_info_ext('tSStatus') ->
   {struct, [{1, required, i32, 'code', undefined},
           {2, optional, string, 'message', undefined},
           {3, optional, {list, {struct, {'iotdb_common_types', 'tSStatus'}}}, 'subStatus', []},
-          {4, optional, {struct, {'iotdb_common_types', 'tEndPoint'}}, 'redirectNode', #'tEndPoint'{}}]}
+          {4, optional, {struct, {'iotdb_common_types', 'tEndPoint'}}, 'redirectNode', #'tEndPoint'{}},
+          {5, optional, bool, 'needRetry', undefined}]}
 ;
 
 struct_info_ext('tConsensusGroupId') ->
@@ -146,14 +264,25 @@ struct_info_ext('tDataNodeLocation') ->
           {6, required, {struct, {'iotdb_common_types', 'tEndPoint'}}, 'schemaRegionConsensusEndPoint', #'tEndPoint'{}}]}
 ;
 
+struct_info_ext('tAINodeLocation') ->
+  {struct, [{1, required, i32, 'aiNodeId', undefined},
+          {2, required, {struct, {'iotdb_common_types', 'tEndPoint'}}, 'internalEndPoint', #'tEndPoint'{}}]}
+;
+
 struct_info_ext('tDataNodeConfiguration') ->
   {struct, [{1, required, {struct, {'iotdb_common_types', 'tDataNodeLocation'}}, 'location', #'tDataNodeLocation'{}},
           {2, required, {struct, {'iotdb_common_types', 'tNodeResource'}}, 'resource', #'tNodeResource'{}}]}
 ;
 
+struct_info_ext('tAINodeConfiguration') ->
+  {struct, [{1, required, {struct, {'iotdb_common_types', 'tAINodeLocation'}}, 'location', #'tAINodeLocation'{}},
+          {2, required, {struct, {'iotdb_common_types', 'tNodeResource'}}, 'resource', #'tNodeResource'{}}]}
+;
+
 struct_info_ext('tFlushReq') ->
   {struct, [{1, optional, string, 'isSeq', undefined},
-          {2, optional, {list, string}, 'storageGroups', []}]}
+          {2, optional, {list, string}, 'storageGroups', []},
+          {3, optional, {list, string}, 'regionIds', []}]}
 ;
 
 struct_info_ext('tSettleReq') ->
@@ -165,9 +294,19 @@ struct_info_ext('tSchemaNode') ->
           {2, required, byte, 'nodeType', undefined}]}
 ;
 
+struct_info_ext('tSetConfigurationReq') ->
+  {struct, [{1, required, {map, string, string}, 'configs', #{}},
+          {2, required, i32, 'nodeId', undefined}]}
+;
+
 struct_info_ext('tSetTTLReq') ->
-  {struct, [{1, required, {list, string}, 'storageGroupPathPattern', []},
-          {2, required, i64, 'tTL', undefined}]}
+  {struct, [{1, required, {list, string}, 'pathPattern', []},
+          {2, required, i64, 'tTL', undefined},
+          {3, required, bool, 'isDataBase', undefined}]}
+;
+
+struct_info_ext('tShowTTLReq') ->
+  {struct, [{1, required, {list, string}, 'pathPattern', []}]}
 ;
 
 struct_info_ext('tFile') ->
@@ -180,10 +319,105 @@ struct_info_ext('tFilesResp') ->
           {2, required, {list, {struct, {'iotdb_common_types', 'tFile'}}}, 'files', []}]}
 ;
 
+struct_info_ext('tSpaceQuota') ->
+  {struct, [{1, optional, i64, 'diskSize', undefined},
+          {2, optional, i64, 'deviceNum', undefined},
+          {3, optional, i64, 'timeserieNum', undefined}]}
+;
+
+struct_info_ext('tTimedQuota') ->
+  {struct, [{1, required, i64, 'timeUnit', undefined},
+          {2, required, i64, 'softLimit', undefined}]}
+;
+
+struct_info_ext('tThrottleQuota') ->
+  {struct, [{1, optional, {map, i32, {struct, {'iotdb_common_types', 'tTimedQuota'}}}, 'throttleLimit', #{}},
+          {2, optional, i64, 'memLimit', undefined},
+          {3, optional, i32, 'cpuLimit', undefined}]}
+;
+
+struct_info_ext('tSetSpaceQuotaReq') ->
+  {struct, [{1, required, {list, string}, 'database', []},
+          {2, required, {struct, {'iotdb_common_types', 'tSpaceQuota'}}, 'spaceLimit', #'tSpaceQuota'{}}]}
+;
+
+struct_info_ext('tSetThrottleQuotaReq') ->
+  {struct, [{1, required, string, 'userName', undefined},
+          {2, required, {struct, {'iotdb_common_types', 'tThrottleQuota'}}, 'throttleQuota', #'tThrottleQuota'{}}]}
+;
+
+struct_info_ext('tPipeHeartbeatResp') ->
+  {struct, [{1, required, {list, string}, 'pipeMetaList', []},
+          {2, optional, {list, bool}, 'pipeCompletedList', []},
+          {3, optional, {list, i64}, 'pipeRemainingEventCountList', []},
+          {4, optional, {list, double}, 'pipeRemainingTimeList', []}]}
+;
+
+struct_info_ext('tLicense') ->
+  {struct, [{1, required, i64, 'licenseIssueTimestamp', undefined},
+          {2, required, i64, 'expireTimestamp', undefined},
+          {4, required, i16, 'dataNodeNumLimit', undefined},
+          {5, required, i32, 'cpuCoreNumLimit', undefined},
+          {6, required, i64, 'deviceNumLimit', undefined},
+          {7, required, i64, 'sensorNumLimit', undefined},
+          {8, required, i64, 'disconnectionFromActiveNodeTimeLimit', undefined},
+          {9, required, i16, 'mlNodeNumLimit', undefined}]}
+;
+
+struct_info_ext('tLoadSample') ->
+  {struct, [{1, required, double, 'cpuUsageRate', undefined},
+          {2, required, double, 'memoryUsageRate', undefined},
+          {3, required, double, 'diskUsageRate', undefined},
+          {4, required, double, 'freeDiskSpace', undefined}]}
+;
+
+struct_info_ext('tServiceProvider') ->
+  {struct, [{1, required, {struct, {'iotdb_common_types', 'tEndPoint'}}, 'endPoint', #'tEndPoint'{}},
+          {2, required, i32, 'serviceType', undefined},
+          {3, required, i32, 'nodeId', undefined}]}
+;
+
+struct_info_ext('tSender') ->
+  {struct, [{1, optional, {struct, {'iotdb_common_types', 'tDataNodeLocation'}}, 'dataNodeLocation', #'tDataNodeLocation'{}},
+          {2, optional, {struct, {'iotdb_common_types', 'tConfigNodeLocation'}}, 'configNodeLocation', #'tConfigNodeLocation'{}}]}
+;
+
+struct_info_ext('tTestConnectionResult') ->
+  {struct, [{1, required, {struct, {'iotdb_common_types', 'tServiceProvider'}}, 'serviceProvider', #'tServiceProvider'{}},
+          {2, required, {struct, {'iotdb_common_types', 'tSender'}}, 'sender', #'tSender'{}},
+          {3, required, bool, 'success', undefined},
+          {4, optional, string, 'reason', undefined}]}
+;
+
+struct_info_ext('tTestConnectionResp') ->
+  {struct, [{1, required, {struct, {'iotdb_common_types', 'tSStatus'}}, 'status', #'tSStatus'{}},
+          {2, required, {list, {struct, {'iotdb_common_types', 'tTestConnectionResult'}}}, 'resultList', []}]}
+;
+
+struct_info_ext('tNodeLocations') ->
+  {struct, [{1, optional, {list, {struct, {'iotdb_common_types', 'tConfigNodeLocation'}}}, 'configNodeLocations', []},
+          {2, optional, {list, {struct, {'iotdb_common_types', 'tDataNodeLocation'}}}, 'dataNodeLocations', []}]}
+;
+
+struct_info_ext('tShowConfigurationTemplateResp') ->
+  {struct, [{1, required, {struct, {'iotdb_common_types', 'tSStatus'}}, 'status', #'tSStatus'{}},
+          {2, required, string, 'content', undefined}]}
+;
+
+struct_info_ext('tShowConfigurationResp') ->
+  {struct, [{1, required, {struct, {'iotdb_common_types', 'tSStatus'}}, 'status', #'tSStatus'{}},
+          {2, required, string, 'content', undefined}]}
+;
+
+struct_info_ext('tShowAppliedConfigurationsResp') ->
+  {struct, [{1, required, {struct, {'iotdb_common_types', 'tSStatus'}}, 'status', #'tSStatus'{}},
+          {2, optional, {map, string, string}, 'data', #{}}]}
+;
+
 struct_info_ext(_) -> erlang:error(function_clause).
 
 struct_names() ->
-  ['tEndPoint', 'tSStatus', 'tConsensusGroupId', 'tSeriesPartitionSlot', 'tTimePartitionSlot', 'tRegionReplicaSet', 'tNodeResource', 'tConfigNodeLocation', 'tDataNodeLocation', 'tDataNodeConfiguration', 'tFlushReq', 'tSettleReq', 'tSchemaNode', 'tSetTTLReq', 'tFile', 'tFilesResp'].
+  ['tEndPoint', 'tSStatus', 'tConsensusGroupId', 'tSeriesPartitionSlot', 'tTimePartitionSlot', 'tRegionReplicaSet', 'tNodeResource', 'tConfigNodeLocation', 'tDataNodeLocation', 'tAINodeLocation', 'tDataNodeConfiguration', 'tAINodeConfiguration', 'tFlushReq', 'tSettleReq', 'tSchemaNode', 'tSetConfigurationReq', 'tSetTTLReq', 'tShowTTLReq', 'tFile', 'tFilesResp', 'tSpaceQuota', 'tTimedQuota', 'tThrottleQuota', 'tSetSpaceQuotaReq', 'tSetThrottleQuotaReq', 'tPipeHeartbeatResp', 'tLicense', 'tLoadSample', 'tServiceProvider', 'tSender', 'tTestConnectionResult', 'tTestConnectionResp', 'tNodeLocations', 'tShowConfigurationTemplateResp', 'tShowConfigurationResp', 'tShowAppliedConfigurationsResp'].
 
 enum_info('tConsensusGroupType') ->
   [
@@ -198,7 +432,34 @@ enum_info('tRegionMigrateFailedType') ->
     {'removePeerFailed', 1},
     {'removeConsensusGroupFailed', 2},
     {'deleteRegionFailed', 3},
-    {'createRegionFailed', 4}
+    {'createRegionFailed', 4},
+    {'disconnect', 5}
+  ];
+
+enum_info('tRegionMaintainTaskStatus') ->
+  [
+    {'tASK_NOT_EXIST', 0},
+    {'pROCESSING', 1},
+    {'sUCCESS', 2},
+    {'fAIL', 3}
+  ];
+
+enum_info('throttleType') ->
+  [
+    {'rEQUEST_NUMBER', 0},
+    {'rEQUEST_SIZE', 1},
+    {'wRITE_NUMBER', 2},
+    {'wRITE_SIZE', 3},
+    {'rEAD_NUMBER', 4},
+    {'rEAD_SIZE', 5}
+  ];
+
+enum_info('tServiceType') ->
+  [
+    {'configNodeInternalService', 0},
+    {'dataNodeInternalService', 1},
+    {'dataNodeMPPService', 2},
+    {'dataNodeExternalService', 3}
   ];
 
 enum_info('tAggregationType') ->
@@ -213,7 +474,29 @@ enum_info('tAggregationType') ->
     {'mAX_VALUE', 7},
     {'mIN_VALUE', 8},
     {'eXTREME', 9},
-    {'cOUNT_IF', 10}
+    {'cOUNT_IF', 10},
+    {'tIME_DURATION', 11},
+    {'mODE', 12},
+    {'cOUNT_TIME', 13},
+    {'sTDDEV', 14},
+    {'sTDDEV_POP', 15},
+    {'sTDDEV_SAMP', 16},
+    {'vARIANCE', 17},
+    {'vAR_POP', 18},
+    {'vAR_SAMP', 19},
+    {'mAX_BY', 20},
+    {'mIN_BY', 21},
+    {'uDAF', 22},
+    {'fIRST', 23},
+    {'lAST', 24},
+    {'fIRST_BY', 25},
+    {'lAST_BY', 26},
+    {'mIN', 27},
+    {'mAX', 28},
+    {'cOUNT_ALL', 29},
+    {'aPPROX_COUNT_DISTINCT', 30},
+    {'aPPROX_MOST_FREQUENT', 31},
+    {'aPPROX_PERCENTILE', 32}
   ];
 
 enum_info('trainingState') ->
@@ -225,22 +508,24 @@ enum_info('trainingState') ->
     {'dROPPING', 4}
   ];
 
-enum_info('modelTask') ->
+enum_info('model') ->
   [
-    {'fORECAST', 0}
+    {'tREE', 0},
+    {'tABLE', 1}
   ];
 
-enum_info('evaluateMetric') ->
+enum_info('functionType') ->
   [
-    {'mSE', 0},
-    {'mAE', 1},
-    {'rMSE', 2}
+    {'nONE', 0},
+    {'sCALAR', 1},
+    {'aGGREGATE', 2},
+    {'tABLE', 3}
   ];
 
 enum_info(_) -> erlang:error(function_clause).
 
 enum_names() ->
-  ['tConsensusGroupType', 'tRegionMigrateFailedType', 'tAggregationType', 'trainingState', 'modelTask', 'evaluateMetric'].
+  ['tConsensusGroupType', 'tRegionMigrateFailedType', 'tRegionMaintainTaskStatus', 'throttleType', 'tServiceType', 'tAggregationType', 'trainingState', 'model', 'functionType'].
 
 exception_names() ->
   [].

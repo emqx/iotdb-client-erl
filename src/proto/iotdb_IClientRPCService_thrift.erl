@@ -59,6 +59,24 @@ function_info('executeLastDataQueryV2', reply_type) ->
 function_info('executeLastDataQueryV2', exceptions) ->
   {struct, []}
 ;
+% executeFastLastDataQueryForOnePrefixPath(This, Req)
+function_info('executeFastLastDataQueryForOnePrefixPath', params_type) ->
+  {struct, [{1, {struct, {'iotdb_client_types', 'tSFastLastDataQueryForOnePrefixPathReq'}}}]}
+;
+function_info('executeFastLastDataQueryForOnePrefixPath', reply_type) ->
+  {struct, {'iotdb_client_types', 'tSExecuteStatementResp'}};
+function_info('executeFastLastDataQueryForOnePrefixPath', exceptions) ->
+  {struct, []}
+;
+% executeFastLastDataQueryForOneDeviceV2(This, Req)
+function_info('executeFastLastDataQueryForOneDeviceV2', params_type) ->
+  {struct, [{1, {struct, {'iotdb_client_types', 'tSFastLastDataQueryForOneDeviceReq'}}}]}
+;
+function_info('executeFastLastDataQueryForOneDeviceV2', reply_type) ->
+  {struct, {'iotdb_client_types', 'tSExecuteStatementResp'}};
+function_info('executeFastLastDataQueryForOneDeviceV2', exceptions) ->
+  {struct, []}
+;
 % executeAggregationQueryV2(This, Req)
 function_info('executeAggregationQueryV2', params_type) ->
   {struct, [{1, {struct, {'iotdb_client_types', 'tSAggregationQueryReq'}}}]}
@@ -467,6 +485,24 @@ function_info('querySchemaTemplate', reply_type) ->
 function_info('querySchemaTemplate', exceptions) ->
   {struct, []}
 ;
+% showConfigurationTemplate(This)
+function_info('showConfigurationTemplate', params_type) ->
+  {struct, []}
+;
+function_info('showConfigurationTemplate', reply_type) ->
+  {struct, {'iotdb_common_types', 'tShowConfigurationTemplateResp'}};
+function_info('showConfigurationTemplate', exceptions) ->
+  {struct, []}
+;
+% showConfiguration(This, NodeId)
+function_info('showConfiguration', params_type) ->
+  {struct, [{1, i32}]}
+;
+function_info('showConfiguration', reply_type) ->
+  {struct, {'iotdb_common_types', 'tShowConfigurationResp'}};
+function_info('showConfiguration', exceptions) ->
+  {struct, []}
+;
 % setSchemaTemplate(This, Req)
 function_info('setSchemaTemplate', params_type) ->
   {struct, [{1, {struct, {'iotdb_client_types', 'tSSetSchemaTemplateReq'}}}]}
@@ -492,6 +528,15 @@ function_info('dropSchemaTemplate', params_type) ->
 function_info('dropSchemaTemplate', reply_type) ->
   {struct, {'iotdb_common_types', 'tSStatus'}};
 function_info('dropSchemaTemplate', exceptions) ->
+  {struct, []}
+;
+% createTimeseriesUsingSchemaTemplate(This, Req)
+function_info('createTimeseriesUsingSchemaTemplate', params_type) ->
+  {struct, [{1, {struct, {'iotdb_client_types', 'tCreateTimeseriesUsingSchemaTemplateReq'}}}]}
+;
+function_info('createTimeseriesUsingSchemaTemplate', reply_type) ->
+  {struct, {'iotdb_common_types', 'tSStatus'}};
+function_info('createTimeseriesUsingSchemaTemplate', exceptions) ->
   {struct, []}
 ;
 % handshake(This, Info)
@@ -522,6 +567,24 @@ function_info('sendFile', reply_type) ->
 function_info('sendFile', exceptions) ->
   {struct, []}
 ;
+% pipeTransfer(This, Req)
+function_info('pipeTransfer', params_type) ->
+  {struct, [{-1, {struct, {'iotdb_client_types', 'tPipeTransferReq'}}}]}
+;
+function_info('pipeTransfer', reply_type) ->
+  {struct, {'iotdb_client_types', 'tPipeTransferResp'}};
+function_info('pipeTransfer', exceptions) ->
+  {struct, []}
+;
+% pipeSubscribe(This, Req)
+function_info('pipeSubscribe', params_type) ->
+  {struct, [{-1, {struct, {'iotdb_client_types', 'tPipeSubscribeReq'}}}]}
+;
+function_info('pipeSubscribe', reply_type) ->
+  {struct, {'iotdb_client_types', 'tPipeSubscribeResp'}};
+function_info('pipeSubscribe', exceptions) ->
+  {struct, []}
+;
 % getBackupConfiguration(This)
 function_info('getBackupConfiguration', params_type) ->
   {struct, []}
@@ -540,8 +603,17 @@ function_info('fetchAllConnectionsInfo', reply_type) ->
 function_info('fetchAllConnectionsInfo', exceptions) ->
   {struct, []}
 ;
+% testConnectionEmptyRPC(This)
+function_info('testConnectionEmptyRPC', params_type) ->
+  {struct, []}
+;
+function_info('testConnectionEmptyRPC', reply_type) ->
+  {struct, {'iotdb_common_types', 'tSStatus'}};
+function_info('testConnectionEmptyRPC', exceptions) ->
+  {struct, []}
+;
 function_info(_Func, _Info) -> erlang:error(function_clause).
 
 function_names() -> 
-  ['executeQueryStatementV2', 'executeUpdateStatementV2', 'executeStatementV2', 'executeRawDataQueryV2', 'executeLastDataQueryV2', 'executeAggregationQueryV2', 'fetchResultsV2', 'openSession', 'closeSession', 'executeStatement', 'executeBatchStatement', 'executeQueryStatement', 'executeUpdateStatement', 'fetchResults', 'fetchMetadata', 'cancelOperation', 'closeOperation', 'getTimeZone', 'setTimeZone', 'getProperties', 'setStorageGroup', 'createTimeseries', 'createAlignedTimeseries', 'createMultiTimeseries', 'deleteTimeseries', 'deleteStorageGroups', 'insertRecord', 'insertStringRecord', 'insertTablet', 'insertTablets', 'insertRecords', 'insertRecordsOfOneDevice', 'insertStringRecordsOfOneDevice', 'insertStringRecords', 'testInsertTablet', 'testInsertTablets', 'testInsertRecord', 'testInsertStringRecord', 'testInsertRecords', 'testInsertRecordsOfOneDevice', 'testInsertStringRecords', 'deleteData', 'executeRawDataQuery', 'executeLastDataQuery', 'executeAggregationQuery', 'requestStatementId', 'createSchemaTemplate', 'appendSchemaTemplate', 'pruneSchemaTemplate', 'querySchemaTemplate', 'setSchemaTemplate', 'unsetSchemaTemplate', 'dropSchemaTemplate', 'handshake', 'sendPipeData', 'sendFile', 'getBackupConfiguration', 'fetchAllConnectionsInfo'].
+  ['executeQueryStatementV2', 'executeUpdateStatementV2', 'executeStatementV2', 'executeRawDataQueryV2', 'executeLastDataQueryV2', 'executeFastLastDataQueryForOnePrefixPath', 'executeFastLastDataQueryForOneDeviceV2', 'executeAggregationQueryV2', 'fetchResultsV2', 'openSession', 'closeSession', 'executeStatement', 'executeBatchStatement', 'executeQueryStatement', 'executeUpdateStatement', 'fetchResults', 'fetchMetadata', 'cancelOperation', 'closeOperation', 'getTimeZone', 'setTimeZone', 'getProperties', 'setStorageGroup', 'createTimeseries', 'createAlignedTimeseries', 'createMultiTimeseries', 'deleteTimeseries', 'deleteStorageGroups', 'insertRecord', 'insertStringRecord', 'insertTablet', 'insertTablets', 'insertRecords', 'insertRecordsOfOneDevice', 'insertStringRecordsOfOneDevice', 'insertStringRecords', 'testInsertTablet', 'testInsertTablets', 'testInsertRecord', 'testInsertStringRecord', 'testInsertRecords', 'testInsertRecordsOfOneDevice', 'testInsertStringRecords', 'deleteData', 'executeRawDataQuery', 'executeLastDataQuery', 'executeAggregationQuery', 'requestStatementId', 'createSchemaTemplate', 'appendSchemaTemplate', 'pruneSchemaTemplate', 'querySchemaTemplate', 'showConfigurationTemplate', 'showConfiguration', 'setSchemaTemplate', 'unsetSchemaTemplate', 'dropSchemaTemplate', 'createTimeseriesUsingSchemaTemplate', 'handshake', 'sendPipeData', 'sendFile', 'pipeTransfer', 'pipeSubscribe', 'getBackupConfiguration', 'fetchAllConnectionsInfo', 'testConnectionEmptyRPC'].
 
