@@ -7,7 +7,14 @@
 %% API.
 -export([start_link/1, stop/1]).
 
--export([insert_tablet/2, insert_records/2, ping/1]).
+-export([
+    insert_tablet/2,
+    insert_tablet/3,
+    insert_records/2,
+    insert_records/3,
+    ping/1,
+    ping/2
+]).
 
 %% gen_server.
 -export([
@@ -43,7 +50,6 @@
 
 %% the first time to create a new schema in IotDB may take a lot of time
 -define(CALL_TIMEOUT, timer:seconds(15)).
--define(SVR_CALL(Pid, Msg), gen_server:call(Pid, Msg, ?CALL_TIMEOUT)).
 
 start_link(Opts) ->
     gen_server:start_link(?MODULE, [Opts], []).
@@ -52,13 +58,22 @@ stop(Pid) ->
     gen_server:stop(Pid).
 
 insert_tablet(Pid, Req) ->
-    ?SVR_CALL(Pid, {?FUNCTION_NAME, Req}).
+    insert_tablet(Pid, Req, ?CALL_TIMEOUT).
+
+insert_tablet(Pid, Req, Timeout) ->
+    gen_server:call(Pid, {?FUNCTION_NAME, Req}, Timeout).
 
 insert_records(Pid, Req) ->
-    ?SVR_CALL(Pid, {?FUNCTION_NAME, Req}).
+    insert_records(Pid, Req, ?CALL_TIMEOUT).
+
+insert_records(Pid, Req, Timeout) ->
+    gen_server:call(Pid, {?FUNCTION_NAME, Req}, Timeout).
 
 ping(Pid) ->
-    ?SVR_CALL(Pid, ?FUNCTION_NAME).
+    ping(Pid, ?CALL_TIMEOUT).
+
+ping(Pid, Timeout) ->
+    gen_server:call(Pid, ?FUNCTION_NAME, Timeout).
 
 %% gen_server.
 init([Cfg0]) ->
